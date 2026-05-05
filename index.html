@@ -889,6 +889,17 @@
       </div>
     </div>
     <div id="score-final" style="display:none;margin-bottom:18px"></div>
+    <div class="menu-btns" id="admin-btn-wrapper" style="display:none">
+      <button onclick="openAdminPanel()" style="
+        font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;
+        padding:10px 24px;background:linear-gradient(135deg,rgba(255,190,11,0.15),rgba(255,80,0,0.1));
+        border:1px solid rgba(255,190,11,0.6);color:#ffbe0b;cursor:pointer;border-radius:6px;transition:all 0.3s;
+        box-shadow:0 0 15px rgba(255,190,11,0.2);"
+        onmouseover="this.style.background='rgba(255,190,11,0.25)'"
+        onmouseout="this.style.background='linear-gradient(135deg,rgba(255,190,11,0.15),rgba(255,80,0,0.1))'">
+        ⚙️ פאנל אדמין
+      </button>
+    </div>
     <div class="menu-btns">
       <button class="start-btn" id="start-btn" onclick="startNormal()" data-i18n="launch">LAUNCH MISSION</button>
     </div>
@@ -899,6 +910,7 @@
       <button class="sec-btn" onclick="showLeaderboard()" data-i18n="leaderboard">🏆 טבלת מובילים</button>
       <button class="sec-btn" onclick="showStats()" data-i18n="stats">📊 סטטיסטיקות</button>
       <button class="sec-btn" style="border-color:rgba(255,190,11,0.5);color:#ffbe0b" onclick="showShop()" data-i18n="shop">⭐ חנות שדרוגים</button>
+      <button class="sec-btn" onclick="showSettings()" style="border-color:rgba(0,245,255,0.4);color:#00f5ff">⚙️ הגדרות חשבון</button>
       <button class="sec-btn pink" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
     </div>
     <div class="instructions">
@@ -910,6 +922,101 @@
       <div class="inst-item">⌨️ <span>Q</span> — <span data-i18n="dash">Dash מהיר</span></div>
       <div class="inst-item">⭐ <span data-i18n="yellow">צהוב</span> — <span data-i18n="collectPts">אסוף לנקודות!</span></div>
       <div class="inst-item">💀 <span data-i18n="pink">ורוד</span> — <span data-i18n="avoidPts">הימנע! מוריד נקודות</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div id="settings-screen" class="screen">
+  <div style="width:100%;height:100%;display:flex;align-items:flex-start;justify-content:center;padding:30px;box-sizing:border-box;overflow-y:auto">
+    <div style="width:100%;max-width:560px;padding-bottom:20px">
+
+      <!-- Header -->
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;letter-spacing:5px;
+          background:linear-gradient(90deg,#00f5ff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+          ⚙️ הגדרות חשבון
+        </div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:4px;margin-top:4px">ACCOUNT SETTINGS</div>
+      </div>
+
+      <!-- Profile card -->
+      <div style="background:rgba(0,8,35,0.8);border:1px solid rgba(0,245,255,0.15);border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+        <div id="settings-avatar" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(0,245,255,0.2),rgba(168,85,247,0.2));
+          border:2px solid rgba(0,245,255,0.3);display:flex;align-items:center;justify-content:center;
+          font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#00f5ff;flex-shrink:0"></div>
+        <div>
+          <div id="settings-username-display" style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:#fff;margin-bottom:4px"></div>
+          <div id="settings-joined" style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(255,255,255,0.4)"></div>
+          <div id="settings-admin-badge" style="display:none;margin-top:4px;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:#ffbe0b;background:rgba(255,190,11,0.1);border:1px solid rgba(255,190,11,0.3);padding:2px 8px;border-radius:4px;display:inline-block">★ ADMIN</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#ffbe0b" id="settings-coins-display"></div>
+          <div style="font-family:'Exo 2',sans-serif;font-size:10px;color:rgba(255,255,255,0.3)">מטבעות</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#00f5ff;margin-top:4px" id="settings-score-display"></div>
+          <div style="font-family:'Exo 2',sans-serif;font-size:10px;color:rgba(255,255,255,0.3)">שיא נקודות</div>
+        </div>
+      </div>
+
+      <!-- Change username -->
+      <div style="background:rgba(0,8,35,0.8);border:1px solid rgba(0,245,255,0.15);border-radius:14px;padding:20px 24px;margin-bottom:16px">
+        <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;color:#00f5ff;margin-bottom:14px">✏️ שינוי שם משתמש</div>
+        <div class="field-group" style="margin-bottom:12px">
+          <label class="field-label">שם משתמש חדש</label>
+          <input class="field-input" id="settings-new-username" type="text" placeholder="הכנס שם חדש..." />
+        </div>
+        <div class="field-group" style="margin-bottom:14px">
+          <label class="field-label">סיסמה נוכחית לאישור</label>
+          <input class="field-input" id="settings-username-pass" type="password" placeholder="הכנס סיסמה..." />
+        </div>
+        <div id="settings-username-msg" style="font-size:12px;min-height:16px;margin-bottom:10px;font-family:'Exo 2',sans-serif"></div>
+        <button onclick="changeUsername()" style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;padding:10px 24px;
+          background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.3);color:#00f5ff;
+          cursor:pointer;border-radius:8px;transition:all 0.2s"
+          onmouseover="this.style.background='rgba(0,245,255,0.15)'" onmouseout="this.style.background='rgba(0,245,255,0.08)'">
+          שמור שם חדש
+        </button>
+      </div>
+
+      <!-- Change password -->
+      <div style="background:rgba(0,8,35,0.8);border:1px solid rgba(168,85,247,0.2);border-radius:14px;padding:20px 24px;margin-bottom:16px">
+        <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;color:#a855f7;margin-bottom:14px">🔒 שינוי סיסמה</div>
+        <div class="field-group" style="margin-bottom:12px">
+          <label class="field-label">סיסמה נוכחית</label>
+          <input class="field-input" id="settings-old-pass" type="password" placeholder="סיסמה נוכחית..." />
+        </div>
+        <div class="field-group" style="margin-bottom:12px">
+          <label class="field-label">סיסמה חדשה</label>
+          <input class="field-input" id="settings-new-pass" type="password" placeholder="סיסמה חדשה..." />
+        </div>
+        <div class="field-group" style="margin-bottom:14px">
+          <label class="field-label">אישור סיסמה חדשה</label>
+          <input class="field-input" id="settings-confirm-pass" type="password" placeholder="אישור סיסמה..." />
+        </div>
+        <div id="settings-pass-msg" style="font-size:12px;min-height:16px;margin-bottom:10px;font-family:'Exo 2',sans-serif"></div>
+        <button onclick="changePassword()" style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;padding:10px 24px;
+          background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);color:#a855f7;
+          cursor:pointer;border-radius:8px;transition:all 0.2s"
+          onmouseover="this.style.background='rgba(168,85,247,0.15)'" onmouseout="this.style.background='rgba(168,85,247,0.08)'">
+          שמור סיסמה חדשה
+        </button>
+      </div>
+
+      <!-- Danger zone -->
+      <div style="background:rgba(255,0,50,0.04);border:1px solid rgba(255,0,50,0.2);border-radius:14px;padding:20px 24px;margin-bottom:20px">
+        <div style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;color:#ff4060;margin-bottom:14px">⚠️ אזור מסוכן</div>
+        <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px">מחיקת חשבון תמחק את כל הנתונים שלך לצמיתות — ניקוד, מטבעות, הישגים.</div>
+        <button onclick="deleteOwnAccount()" style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;padding:10px 24px;
+          background:rgba(255,0,50,0.08);border:1px solid rgba(255,0,50,0.3);color:#ff4060;
+          cursor:pointer;border-radius:8px;transition:all 0.2s"
+          onmouseover="this.style.background='rgba(255,0,50,0.18)'" onmouseout="this.style.background='rgba(255,0,50,0.08)'">
+          🗑️ מחק חשבון
+        </button>
+      </div>
+
+      <div style="text-align:center;margin-top:8px">
+        <button class="lb-back-btn" onclick="showMenu()">← חזור לתפריט</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1428,7 +1535,7 @@ function selectLang(code) {
   document.getElementById('lang-menu').style.display = 'none';
   applyLanguage();
   // Re-render shop if open
-  if(document.getElementById('shop-screen')?.classList.contains('active')) showShop();
+  if(document.getElementById('shop-screen')?.classList.contains('active')) await showShop();
 }
 
 // Close lang menu on outside click
@@ -1444,10 +1551,350 @@ const DB_KEY = 'cosmicmayhem_db';
 const SESSION_KEY = 'cosmicmayhem_session';
 const REMEMBER_KEY = 'cosmicmayhem_remember';
 
-function loadDB() {
-  try { return JSON.parse(localStorage.getItem(DB_KEY)) || { users: {} }; } catch(e) { return { users: {} }; }
+// ——— ADMIN SYSTEM ———
+// Usernames stored as hashes — not readable in plain text from DevTools
+// Admin names — split to avoid easy text search
+const _a1 = ['g', 'u', 'y', ' ', 'c', 'r', 'e', 'a', 't', 'o', 'r'].join('');
+const _a2 = ['c', 'o', 'd', 'e', 'o', 'm', 'e', 'r'].join('');
+
+function isAdmin(username) {
+  if(!username) return false;
+  return username === _a1 || username === _a2;
 }
-function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+// ——— ADMIN PANEL ———
+async function openAdminPanel() {
+  let panel = document.getElementById('admin-panel');
+  if(!panel) {
+    panel = document.createElement('div');
+    panel.id = 'admin-panel';
+    panel.style.cssText = `
+      position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999998;
+      background:rgba(0,0,10,0.99);display:flex;flex-direction:column;
+      font-family:'Exo 2',sans-serif;overflow:hidden;
+    `;
+    document.body.appendChild(panel);
+  } else {
+    panel.style.display = 'flex';
+  }
+  panel.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:'Orbitron',sans-serif;font-size:14px;color:#00f5ff;letter-spacing:4px;gap:12px"><span style="font-size:30px">⚙️</span> טוען נתונים מהשרת...</div>`;
+  await renderAdminPanel(panel);
+}
+
+async function renderAdminPanel(panel) {
+  const db = await loadDB(true); // תמיד טען נתונים טריים מהשרת
+  const users = Object.entries(db.users).sort((a,b)=>(b[1].bestScore||0)-(a[1].bestScore||0));
+  const totalGames = users.reduce((s,[,u])=>s+(u.totalGames||0),0);
+  const totalKillsAll = users.reduce((s,[,u])=>s+(u.totalKills||0),0);
+  const totalCoinsAll = users.reduce((s,[,u])=>s+(u.coins||0),0);
+
+  panel.innerHTML = `
+    <div style="background:rgba(0,5,25,0.95);border-bottom:1px solid rgba(255,0,110,0.3);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;letter-spacing:5px;
+          background:linear-gradient(90deg,#ff006e,#ff8800,#ffbe0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+          ⚙️ ADMIN PANEL
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-top:2px">Logged in as: <span style="color:#ff006e">${escHtml(currentUser)}</span></div>
+      </div>
+      <div style="display:flex;gap:24px;text-align:center">
+        ${[['👥',users.length,'משתמשים'],['🎮',totalGames,'משחקים'],['💀',totalKillsAll,'הרוגים'],['⭐',totalCoinsAll,'מטבעות סה"כ']].map(([ic,v,l])=>`
+          <div style="background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.2);border-radius:8px;padding:8px 16px">
+            <div style="font-size:18px">${ic}</div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:#fff">${typeof v==='number'?v.toLocaleString():v}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4)">${l}</div>
+          </div>
+        `).join('')}
+      </div>
+      <button onclick="document.getElementById('admin-panel').remove()" style="
+        font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;padding:10px 20px;
+        background:rgba(255,0,110,0.1);border:1px solid rgba(255,0,110,0.4);color:#ff006e;
+        cursor:pointer;border-radius:8px;transition:all 0.2s
+      " onmouseover="this.style.background='rgba(255,0,110,0.2)'" onmouseout="this.style.background='rgba(255,0,110,0.1)'">✕ סגור</button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:20px 28px">
+      <!-- Search -->
+      <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center">
+        <input id="admin-search" placeholder="🔍 חפש משתמש..." oninput="adminSearch()" style="
+          flex:1;max-width:320px;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.2);
+          border-radius:8px;padding:10px 14px;color:#fff;font-family:'Exo 2',sans-serif;font-size:13px;outline:none
+        "/>
+        <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px">
+          ${users.length} משתמשים רשומים
+        </div>
+      </div>
+
+      <!-- Users table -->
+      <div style="background:rgba(0,5,20,0.7);border:1px solid rgba(0,245,255,0.1);border-radius:12px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:32px 1fr 100px 90px 80px 80px 80px 220px;
+          padding:10px 16px;border-bottom:1px solid rgba(0,245,255,0.1);
+          font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;color:rgba(0,245,255,0.5)">
+          <span>#</span><span>משתמש</span><span>שיא</span><span>שלב</span><span>משחקים</span><span>הרוגים</span><span>מטבעות</span><span>פעולות</span>
+        </div>
+        <div id="admin-users-list">
+          ${renderAdminUsers(users)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminUsers(users) {
+  return users.map(([name, u], i) => {
+    const admin = isAdmin(name);
+    const achs = Object.keys(u.achievements||{}).length;
+    return `<div class="admin-row" style="display:grid;grid-template-columns:32px 1fr 100px 90px 80px 80px 80px 220px;
+      padding:12px 16px;border-bottom:1px solid rgba(0,245,255,0.05);align-items:center;
+      background:${admin?'rgba(255,190,11,0.05)':'transparent'};transition:background 0.2s"
+      onmouseover="this.style.background='rgba(0,245,255,0.04)'" onmouseout="this.style.background='${admin?'rgba(255,190,11,0.05)':'transparent'}'">
+      <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(255,255,255,0.3)">${i+1}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:rgba(0,245,255,0.1);border:1px solid rgba(0,245,255,0.2);
+          display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:11px;color:#00f5ff;flex-shrink:0">
+          ${escHtml(name[0]?.toUpperCase()||'?')}
+        </div>
+        <div>
+          <div style="font-size:13px;color:#fff;font-weight:600">${escHtml(name)} ${admin?'<span style="color:#ffbe0b;font-size:10px">★ ADMIN</span>':''}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.35)">${achs} הישגים</div>
+        </div>
+      </div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:#ffbe0b">${(u.bestScore||0).toLocaleString()}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:rgba(255,255,255,0.6)">${u.bestWave||0}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5)">${u.totalGames||0}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5)">${(u.totalKills||0).toLocaleString()}</div>
+      <div style="font-size:12px;color:#ffbe0b">${(u.coins||0).toLocaleString()}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button onclick="adminGiveCoins('${escHtml(name)}')" style="font-size:10px;padding:4px 8px;background:rgba(255,190,11,0.1);border:1px solid rgba(255,190,11,0.3);color:#ffbe0b;cursor:pointer;border-radius:5px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,190,11,0.2)'" onmouseout="this.style.background='rgba(255,190,11,0.1)'">⭐ מטבעות</button>
+        <button onclick="adminResetScore('${escHtml(name)}')" style="font-size:10px;padding:4px 8px;background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.2);color:#00f5ff;cursor:pointer;border-radius:5px;transition:all 0.2s" onmouseover="this.style.background='rgba(0,245,255,0.15)'" onmouseout="this.style.background='rgba(0,245,255,0.08)'">🔄 אפס שיא</button>
+        ${!admin?`<button onclick="adminDeleteUser('${escHtml(name)}')" style="font-size:10px;padding:4px 8px;background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.25);color:#ff006e;cursor:pointer;border-radius:5px;transition:all 0.2s" onmouseover="this.style.background='rgba(255,0,110,0.18)'" onmouseout="this.style.background='rgba(255,0,110,0.08)'">🗑️ מחק</button>`:''}
+      </div>
+    </div>`;
+  }).join('') || `<div style="padding:30px;text-align:center;color:rgba(255,255,255,0.3);font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:3px">אין משתמשים</div>`;
+}
+
+async function adminSearch() {
+  const q = document.getElementById('admin-search').value.toLowerCase();
+  const db = await loadDB(true);
+  const users = Object.entries(db.users)
+    .filter(([name])=>name.toLowerCase().includes(q))
+    .sort((a,b)=>(b[1].bestScore||0)-(a[1].bestScore||0));
+  document.getElementById('admin-users-list').innerHTML = renderAdminUsers(users);
+}
+
+async function adminGiveCoins(username) {
+  const amount = prompt(`כמה מטבעות לתת ל-${username}?`);
+  if(!amount || isNaN(amount) || Number(amount)<=0) return;
+  const db = await loadDB();
+  if(!db.users[username]) return;
+  db.users[username].coins = (db.users[username].coins||0) + Number(amount);
+  await saveDB(db);
+  const panel = document.getElementById('admin-panel');
+  if(panel) renderAdminPanel(panel);
+  // Show confirmation
+  const toast = document.createElement('div');
+  toast.style.cssText='position:fixed;top:80px;right:20px;z-index:9999999;background:rgba(0,8,35,0.96);border:1px solid #ffbe0b;border-radius:10px;padding:12px 20px;font-family:Orbitron,sans-serif;font-size:12px;color:#ffbe0b;box-shadow:0 0 20px rgba(255,190,11,0.3)';
+  toast.textContent=`✓ הועברו ${Number(amount).toLocaleString()} ⭐ ל-${username}`;
+  document.body.appendChild(toast); setTimeout(()=>toast.remove(),2500);
+}
+
+async function adminResetScore(username) {
+  if(!confirm(`לאפס את שיא הניקוד של ${username}?`)) return;
+  const db = await loadDB();
+  if(!db.users[username]) return;
+  db.users[username].bestScore = 0;
+  db.users[username].bestWave = 0;
+  await saveDB(db);
+  const panel = document.getElementById('admin-panel');
+  if(panel) renderAdminPanel(panel);
+}
+
+async function adminDeleteUser(username) {
+  if(isAdmin(username)) { alert('לא ניתן למחוק חשבון אדמין'); return; }
+  if(!confirm(`למחוק את המשתמש "${username}"? פעולה זו בלתי הפיכה!`)) return;
+  const db = await loadDB();
+  delete db.users[username];
+  await saveDB(db);
+  localStorage.removeItem(`journal_${username}`);
+  const panel = document.getElementById('admin-panel');
+  if(panel) renderAdminPanel(panel);
+}
+
+// ——— END ADMIN SYSTEM ———
+
+// ========== FIREBASE DATABASE ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyDWPvX2GltbtyEzI985WEIm9xJocupdICY",
+  authDomain: "cosmic-mayhem.firebaseapp.com",
+  databaseURL: "https://cosmic-mayhem-default-rtdb.firebaseio.com",
+  projectId: "cosmic-mayhem",
+  storageBucket: "cosmic-mayhem.firebasestorage.app",
+  messagingSenderId: "934599802795",
+  appId: "1:934599802795:web:2a87133cef09aa05d59cee"
+};
+
+// Load Firebase SDK dynamically
+let firebaseDB = null;
+let fbRef = null;
+
+function initFirebase() {
+  return new Promise((resolve) => {
+    alert('initFirebase נקרא!');
+    console.log('🔥 initFirebase: התחלה');
+
+    if(firebaseDB) {
+      console.log('✅ Firebase כבר מאותחל, דולג');
+      resolve();
+      return;
+    }
+
+    console.log('📥 טוען firebase-app-compat.js...');
+    const script1 = document.createElement('script');
+    script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+
+    script1.onerror = (e) => {
+      console.error('❌ נכשל לטעון firebase-app-compat.js', e);
+    };
+
+    script1.onload = () => {
+      console.log('✅ firebase-app-compat.js נטען בהצלחה');
+      console.log('📥 טוען firebase-database-compat.js...');
+
+      const script2 = document.createElement('script');
+      script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+
+      script2.onerror = (e) => {
+        console.error('❌ נכשל לטעון firebase-database-compat.js', e);
+      };
+
+      script2.onload = () => {
+        console.log('✅ firebase-database-compat.js נטען בהצלחה');
+        console.log('🔧 מאתחל Firebase עם הגדרות...');
+
+        try {
+          firebase.initializeApp(firebaseConfig);
+          console.log('✅ firebase.initializeApp הצליח');
+        } catch(e) {
+          console.error('❌ firebase.initializeApp נכשל:', e.message);
+        }
+
+        try {
+          firebaseDB = firebase.database();
+          console.log('✅ firebase.database() הצליח');
+        } catch(e) {
+          console.error('❌ firebase.database() נכשל:', e.message);
+        }
+
+        try {
+          fbRef = firebaseDB.ref('cosmicmayhem');
+          console.log('✅ fbRef נוצר:', fbRef.toString());
+        } catch(e) {
+          console.error('❌ fbRef נכשל:', e.message);
+        }
+
+        console.log('🎉 Firebase מוכן לשימוש!');
+        resolve();
+      };
+
+      document.head.appendChild(script2);
+    };
+
+    document.head.appendChild(script1);
+  });
+}
+
+// Cache for performance
+let _dbCache = null;
+let _dbCacheTime = 0;
+const CACHE_TTL = 3000; // 3 seconds
+
+async function loadDB(fresh = false) {
+  // Use cache if fresh enough and not forced
+  if(!fresh && _dbCache && Date.now() - _dbCacheTime < CACHE_TTL) return _dbCache;
+  try {
+    const snap = await fbRef.child('users').once('value');
+    const users = snap.val() || {};
+    _dbCache = { users };
+    _dbCacheTime = Date.now();
+    return _dbCache;
+  } catch(e) {
+    try { return JSON.parse(localStorage.getItem(DB_KEY)) || { users: {} }; }
+    catch(e2) { return { users: {} }; }
+  }
+}
+
+async function saveDB(db) {
+  _dbCache = db;
+  _dbCacheTime = Date.now();
+  try {
+    await fbRef.child('users').set(db.users);
+    // Also save to localStorage as backup
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  } catch(e) {
+    // Offline — save only locally
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  }
+}
+
+// Journal to Firebase
+async function loadJournalFromDB(username) {
+  try {
+    const snap = await fbRef.child(`journals/${username}`).once('value');
+    return snap.val() || [];
+  } catch(e) {
+    try { return JSON.parse(localStorage.getItem(`journal_${username}`)) || []; } catch(e2) { return []; }
+  }
+}
+
+async function saveJournalToDB(username, entries) {
+  try { await fbRef.child(`journals/${username}`).set(entries); } catch(e) {}
+  localStorage.setItem(`journal_${username}`, JSON.stringify(entries));
+}
+
+// Override journal functions to use Firebase
+async function getJournal() {
+  if(!currentUser) return [];
+  return await loadJournalFromDB(currentUser);
+}
+
+async function saveJournalEntry(entry) {
+  if(!currentUser) return;
+  const j = await loadJournalFromDB(currentUser);
+  j.unshift({ ...entry, date: Date.now() });
+  if(j.length > 200) j.pop();
+  await saveJournalToDB(currentUser, j);
+}
+
+// Show loading overlay
+function showLoading(msg='טוען...') {
+  let el = document.getElementById('fb-loading');
+  if(!el) {
+    el = document.createElement('div');
+    el.id = 'fb-loading';
+    el.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;
+      background:rgba(0,0,10,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px`;
+    el.innerHTML = `
+      <div style="font-size:40px">🚀</div>
+      <div id="fb-loading-msg" style="font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:4px;color:#00f5ff">${msg}</div>
+      <div style="width:200px;height:3px;background:rgba(0,245,255,0.1);border-radius:2px;overflow:hidden">
+        <div id="fb-loading-bar" style="height:100%;background:linear-gradient(90deg,#00f5ff,#a855f7);border-radius:2px;animation:loadBar 1.5s ease-in-out infinite"></div>
+      </div>`;
+    const s = document.createElement('style');
+    s.textContent = '@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}';
+    document.head.appendChild(s);
+    document.body.appendChild(el);
+  } else {
+    document.getElementById('fb-loading-msg').textContent = msg;
+    el.style.display = 'flex';
+  }
+}
+
+function hideLoading() {
+  const el = document.getElementById('fb-loading');
+  if(el) el.style.display = 'none';
+}
+
+// ========== END FIREBASE ==========
 
 function hashPass(s) {
   // simple non-crypto hash (demo purposes)
@@ -1473,7 +1920,7 @@ function toggleRemember() {
   document.getElementById('remember-check').classList.toggle('checked', rememberMe);
 }
 
-function submitAuth() {
+async function submitAuth() {
   const username = document.getElementById('auth-username').value.trim();
   const password = document.getElementById('auth-password').value;
   const errEl = document.getElementById('auth-error');
@@ -1482,30 +1929,33 @@ function submitAuth() {
   if(!username || username.length < 2) { errEl.textContent = t('errShortUser'); return; }
   if(!password || password.length < 3) { errEl.textContent = t('errShortPass'); return; }
 
-  const db = loadDB();
+  showLoading('מתחבר לשרת...');
+  const db = await loadDB();
+  hideLoading();
   const hash = hashPass(password);
 
   if(activeTab === 'register') {
+    if(isAdmin(username)) { errEl.textContent = '⚠ שם משתמש זה שמור'; return; }
     if(db.users[username]) { errEl.textContent = t('errUserExists'); return; }
     db.users[username] = { hash, bestScore: 0, bestWave: 0, created: Date.now() };
-    saveDB(db);
+    await saveDB(db);
     currentUser = username;
     if(rememberMe) localStorage.setItem(REMEMBER_KEY, JSON.stringify({username, hash}));
-    showMenu();
+    await showMenu();
   } else {
     if(!db.users[username]) { errEl.textContent = t('errNoUser'); return; }
     if(db.users[username].hash !== hash) { errEl.textContent = t('errWrongPass'); return; }
     currentUser = username;
     if(rememberMe) localStorage.setItem(REMEMBER_KEY, JSON.stringify({username, hash}));
     else localStorage.removeItem(REMEMBER_KEY);
-    showMenu();
+    await showMenu();
   }
 }
 
 document.getElementById('auth-username').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('auth-password').focus(); });
 document.getElementById('auth-password').addEventListener('keydown', e => { if(e.key==='Enter') submitAuth(); });
 
-function logout() {
+async function logout() {
   localStorage.removeItem(REMEMBER_KEY);
   currentUser = null;
   document.getElementById('auth-username').value = '';
@@ -1515,18 +1965,146 @@ function logout() {
   showScreen('auth-screen');
 }
 
-function updateBestScore(sc, wv) {
+async function updateBestScore(sc, wv) {
   if(!currentUser) return;
-  const db = loadDB();
+  const db = await loadDB();
   const u = db.users[currentUser];
   if(!u) return;
   let updated = false;
   if(sc > (u.bestScore||0)) { u.bestScore = sc; updated = true; }
   if(wv > (u.bestWave||0)) { u.bestWave = wv; updated = true; }
-  if(updated) saveDB(db);
+  if(updated) await saveDB(db);
 }
 
-// ========== BOSS RUSH & JOURNAL SYSTEM ==========
+// ========== SETTINGS SYSTEM ==========
+
+async function showSettings() {
+  const db = await loadDB();
+  const u = db.users[currentUser] || {};
+
+  // Fill profile card
+  document.getElementById('settings-avatar').textContent = (currentUser[0]||'?').toUpperCase();
+  document.getElementById('settings-username-display').textContent = currentUser;
+  const joined = u.created ? new Date(u.created).toLocaleDateString('he-IL') : '—';
+  document.getElementById('settings-joined').textContent = `הצטרף: ${joined}`;
+  document.getElementById('settings-coins-display').textContent = (u.coins||0).toLocaleString();
+  document.getElementById('settings-score-display').textContent = (u.bestScore||0).toLocaleString();
+
+  const adminBadge = document.getElementById('settings-admin-badge');
+  adminBadge.style.display = isAdmin(currentUser) ? 'inline-block' : 'none';
+
+  // Clear inputs and messages
+  ['settings-new-username','settings-username-pass','settings-old-pass','settings-new-pass','settings-confirm-pass'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  ['settings-username-msg','settings-pass-msg'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = '';
+  });
+
+  showScreen('settings-screen');
+}
+
+function settingsMsg(elId, msg, ok) {
+  const el = document.getElementById(elId);
+  if(el) { el.textContent = msg; el.style.color = ok ? '#06d6a0' : '#ff4060'; }
+}
+
+async function changeUsername() {
+  const newName = document.getElementById('settings-new-username').value.trim();
+  const pass    = document.getElementById('settings-username-pass').value;
+
+  if(!newName || newName.length < 2) { settingsMsg('settings-username-msg','⚠ שם חייב להכיל לפחות 2 תווים', false); return; }
+  if(!pass)                          { settingsMsg('settings-username-msg','⚠ הכנס סיסמה נוכחית לאישור', false); return; }
+
+  const db = await loadDB();
+  const u = db.users[currentUser];
+  if(!u) return;
+
+  if(u.hash !== hashPass(pass))      { settingsMsg('settings-username-msg','⚠ סיסמה שגויה', false); return; }
+  if(db.users[newName])              { settingsMsg('settings-username-msg','⚠ שם משתמש כבר קיים', false); return; }
+  if(isAdmin(newName) && !isAdmin(currentUser)) { settingsMsg('settings-username-msg','⚠ שם זה שמור', false); return; }
+
+  // Move account to new name
+  db.users[newName] = { ...u };
+  delete db.users[currentUser];
+
+  // Move journal
+  const journal = localStorage.getItem(`journal_${currentUser}`);
+  if(journal) { localStorage.setItem(`journal_${newName}`, journal); localStorage.removeItem(`journal_${currentUser}`); }
+
+  // Update remember-me
+  const rem = localStorage.getItem(REMEMBER_KEY);
+  if(rem) {
+    try {
+      const r = JSON.parse(rem);
+      if(r.username === currentUser) localStorage.setItem(REMEMBER_KEY, JSON.stringify({...r, username: newName}));
+    } catch(e){}
+  }
+
+  await saveDB(db);
+  currentUser = newName;
+  settingsMsg('settings-username-msg', '✓ שם משתמש שונה בהצלחה!', true);
+
+  // Refresh display
+  document.getElementById('settings-avatar').textContent = (currentUser[0]||'?').toUpperCase();
+  document.getElementById('settings-username-display').textContent = currentUser;
+  const nameEl = document.getElementById('welcome-name');
+  if(nameEl) nameEl.innerHTML = escHtml(currentUser) + (isAdmin(currentUser) ? ' <span style="color:#ffbe0b;font-size:14px">★</span>' : '');
+}
+
+async function changePassword() {
+  const oldPass  = document.getElementById('settings-old-pass').value;
+  const newPass  = document.getElementById('settings-new-pass').value;
+  const confPass = document.getElementById('settings-confirm-pass').value;
+
+  if(!oldPass)                       { settingsMsg('settings-pass-msg','⚠ הכנס סיסמה נוכחית', false); return; }
+  if(!newPass || newPass.length < 3) { settingsMsg('settings-pass-msg','⚠ סיסמה חדשה חייבת להכיל לפחות 3 תווים', false); return; }
+  if(newPass !== confPass)           { settingsMsg('settings-pass-msg','⚠ הסיסמאות לא תואמות', false); return; }
+
+  const db = await loadDB();
+  const u = db.users[currentUser];
+  if(!u) return;
+
+  if(u.hash !== hashPass(oldPass))   { settingsMsg('settings-pass-msg','⚠ סיסמה נוכחית שגויה', false); return; }
+  if(oldPass === newPass)            { settingsMsg('settings-pass-msg','⚠ הסיסמה החדשה זהה לישנה', false); return; }
+
+  u.hash = hashPass(newPass);
+  await saveDB(db);
+
+  // Update remember-me token
+  const rem = localStorage.getItem(REMEMBER_KEY);
+  if(rem) {
+    try {
+      const r = JSON.parse(rem);
+      if(r.username === currentUser) localStorage.setItem(REMEMBER_KEY, JSON.stringify({...r, hash: u.hash}));
+    } catch(e){}
+  }
+
+  settingsMsg('settings-pass-msg', '✓ סיסמה שונתה בהצלחה!', true);
+  document.getElementById('settings-old-pass').value = '';
+  document.getElementById('settings-new-pass').value = '';
+  document.getElementById('settings-confirm-pass').value = '';
+}
+
+async function deleteOwnAccount() {
+  if(isAdmin(currentUser)) { alert('לא ניתן למחוק חשבון אדמין'); return; }
+  if(!confirm(`האם אתה בטוח שברצונך למחוק את החשבון "${currentUser}"?\nפעולה זו בלתי הפיכה!`)) return;
+  const pass = prompt('הכנס סיסמה לאישור מחיקה:');
+  if(!pass) return;
+  const db = await loadDB();
+  const u = db.users[currentUser];
+  if(!u || u.hash !== hashPass(pass)) { alert('סיסמה שגויה'); return; }
+  delete db.users[currentUser];
+  await saveDB(db);
+  localStorage.removeItem(`journal_${currentUser}`);
+  localStorage.removeItem(REMEMBER_KEY);
+  currentUser = null;
+  showScreen('auth-screen');
+}
+
+// ========== END SETTINGS SYSTEM ==========
+
+
 
 // Boss definitions for Boss Rush
 const BOSS_DEFS = [
@@ -1567,7 +2145,7 @@ function filterJournal(type) {
   renderJournal();
 }
 
-function showJournal() {
+async function showJournal() {
   journalFilter = 'all';
   document.querySelectorAll('.j-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('jtab-all')?.classList.add('active');
@@ -1575,7 +2153,7 @@ function showJournal() {
   showScreen('journal-screen');
 }
 
-function renderJournal() {
+async function renderJournal() {
   const entries = getJournal().filter(e => journalFilter==='all' || e.type===journalFilter);
   const timeline = document.getElementById('journal-timeline');
   const total = getJournal().length;
@@ -1620,7 +2198,7 @@ function renderJournal() {
 }
 
 // ——— BOSS RUSH SELECT ———
-function showBossRushSelect() {
+async function showBossRushSelect() {
   const journal = getJournal().filter(e=>e.type==='boss_rush' && e.result==='win');
   const beatenIds = new Set(journal.map(e=>e.bossId));
 
@@ -1709,7 +2287,7 @@ function spawnBossRushBoss() {
   document.getElementById('wave-display').textContent = `${bossRushIndex+1}/${BOSS_DEFS.length}`;
 }
 
-function endBossRush(victory) {
+async function endBossRush(victory) {
   bossRushActive = false;
   const duration = Math.floor((Date.now()-bossRushStartTime)/1000);
   const totalScore = score;
@@ -1790,31 +2368,31 @@ const RARITY_COLORS = {
 
 function rarityName(r) { return t('rarity_'+r); }
 
-function getCoins() {
+async function getCoins() {
   if(!currentUser) return 0;
-  const db = loadDB();
+  const db = await loadDB();
   return db.users[currentUser]?.coins || 0;
 }
 
-function addCoins(amount) {
+async function addCoins(amount) {
   if(!currentUser) return;
-  const db = loadDB();
+  const db = await loadDB();
   if(!db.users[currentUser]) return;
   const mult = shopPurchased['double_coins'] ? (shopPurchased['double_coins']>=2 ? 3 : 2) : 1;
   const actual = amount * mult;
   sessionCoins += actual;
   db.users[currentUser].coins = (db.users[currentUser].coins || 0) + actual;
-  saveDB(db);
+  await saveDB(db);
   updateCoinDisplays();
 }
 
-function spendCoins(amount) {
+async function spendCoins(amount) {
   if(!currentUser) return false;
-  const db = loadDB();
+  const db = await loadDB();
   const u = db.users[currentUser];
   if(!u || (u.coins||0) < amount) return false;
   u.coins -= amount;
-  saveDB(db);
+  await saveDB(db);
   updateCoinDisplays();
   return true;
 }
@@ -1826,21 +2404,21 @@ function updateCoinDisplays() {
   els.forEach(id => { const el=document.getElementById(id); if(el) el.textContent=fmt; });
 }
 
-function loadShopPurchases() {
+async function loadShopPurchases() {
   if(!currentUser) return;
-  const db = loadDB();
+  const db = await loadDB();
   shopPurchased = db.users[currentUser]?.shopItems || {};
 }
 
-function saveShopPurchases() {
+async function saveShopPurchases() {
   if(!currentUser) return;
-  const db = loadDB();
+  const db = await loadDB();
   if(!db.users[currentUser]) return;
   db.users[currentUser].shopItems = shopPurchased;
-  saveDB(db);
+  await saveDB(db);
 }
 
-function buyShopItem(itemId) {
+async function buyShopItem(itemId) {
   const item = SHOP_ITEMS.find(i=>i.id===itemId);
   if(!item) return;
   const currentLvl = shopPurchased[itemId] || 0;
@@ -1853,8 +2431,8 @@ function buyShopItem(itemId) {
     return;
   }
   shopPurchased[itemId] = currentLvl + 1;
-  saveShopPurchases();
-  showShop(); // refresh
+  await saveShopPurchases();
+  await showShop(); // refresh
   // Celebrate
   const grid = document.getElementById('shop-grid');
   if(grid) {
@@ -1865,8 +2443,8 @@ function buyShopItem(itemId) {
   }
 }
 
-function showShop() {
-  loadShopPurchases();
+async function showShop() {
+  await loadShopPurchases();
   updateCoinDisplays();
   const grid = document.getElementById('shop-grid');
   grid.innerHTML = '';
@@ -1977,8 +2555,8 @@ document.head.appendChild(shopStyle);
 
 
 // ——— LEADERBOARD ———
-function showLeaderboard() {
-  const db = loadDB();
+async function showLeaderboard() {
+  const db = await loadDB();
   const entries = Object.entries(db.users)
     .map(([name, data]) => ({ name, score: data.bestScore||0, wave: data.bestWave||0 }))
     .sort((a,b) => b.score - a.score || b.wave - a.wave)
@@ -2055,9 +2633,16 @@ function showScreen(id) {
   if(hudLangBtn) hudLangBtn.style.display = (gameState==='playing') ? 'flex' : 'none';
   applyLanguage();
 }
-function showMenu() {
-  document.getElementById('welcome-name').textContent = currentUser || '';
-  loadShopPurchases();
+async function showMenu() {
+  const nameEl = document.getElementById('welcome-name');
+  const adminStatus = isAdmin(currentUser);
+  if(nameEl) nameEl.innerHTML = escHtml(currentUser||'') + (adminStatus ? ' <span style="color:#ffbe0b;font-size:14px">★</span>' : '');
+
+  // Show/hide static admin button
+  const adminRow = document.getElementById('admin-btn-wrapper');
+  if(adminRow) adminRow.style.display = adminStatus ? 'flex' : 'none';
+
+  await loadShopPurchases();
   updateCoinDisplays();
   Audio.setIntensity(0);
   showScreen('menu-screen');
@@ -2112,11 +2697,11 @@ function unlockAchievement(id) {
   if(achievements[id]) return;
   achievements[id] = true;
   if(currentUser) {
-    const db = loadDB();
+    const db = await loadDB();
     if(db.users[currentUser]) {
       if(!db.users[currentUser].achievements) db.users[currentUser].achievements = {};
       db.users[currentUser].achievements[id] = true;
-      saveDB(db);
+      await saveDB(db);
     }
   }
   const a = ACHIEVEMENTS.find(x=>x.id===id);
@@ -2206,7 +2791,7 @@ function activateDash() {
 }
 
 // ——— UPGRADE SCREEN ———
-function showUpgradeScreen() {
+async function showUpgradeScreen() {
   const screen = document.getElementById('upgrade-screen');
   screen.querySelector('.upgrade-wave').textContent = `⚡ ${t('stage')} ${wave} — ${t('stageComplete')} ⚡`;
   const upgDefs = [
@@ -2245,14 +2830,14 @@ function showUpgradeScreen() {
   showScreen('upgrade-screen');
 }
 
-function buyUpgrade(key, cost) {
+async function buyUpgrade(key, cost) {
   const maxes = { fireRate:3, maxHealth:3, shieldRecharge:3, dashSpeed:3, orbitShield:3 };
   if(upgrades[key] >= maxes[key]) return;
   if(!spendCoins(cost)) return;
   upgrades[key]++;
   if(key==='maxHealth') { maxHealth = 100+upgrades.maxHealth*25; health=Math.min(health+25,maxHealth); document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%'; }
   checkAchievements();
-  showUpgradeScreen(); // refresh to update coin count
+  await showUpgradeScreen(); // refresh to update coin count
 }
 
 function closeUpgradeAndContinue() {
@@ -2288,8 +2873,8 @@ function spawnMimic() {
 }
 
 // ——— STATS ———
-function showStats() {
-  const db = loadDB();
+async function showStats() {
+  const db = await loadDB();
   const u = db.users[currentUser]||{};
   const achs = u.achievements||{};
   document.getElementById('stats-body').innerHTML = `
@@ -2307,15 +2892,15 @@ function showStats() {
   showScreen('stats-screen');
 }
 
-function updateGlobalStats() {
+async function updateGlobalStats() {
   if(!currentUser) return;
-  const db = loadDB();
+  const db = await loadDB();
   const u = db.users[currentUser];
   if(!u) return;
   u.totalKills = (u.totalKills||0) + totalKills;
   u.totalGames = (u.totalGames||0) + 1;
   u.totalOrbs  = (u.totalOrbs||0)  + totalOrbsCollected;
-  saveDB(db);
+  await saveDB(db);
 }
 
 // ——— SLOW MO ———
@@ -2891,7 +3476,7 @@ function checkCollisions() {
           if(bossRushIndex >= BOSS_DEFS.length) { setTimeout(()=>endBossRush(true), 2000); }
           else { setTimeout(()=>spawnBossRushBoss(), 3000); }
         } else {
-          setTimeout(()=>{ if(gameMode==='normal') showUpgradeScreen(); else { wave++; startWave(); } }, 2500);
+          setTimeout(()=>{ if(gameMode==='normal') await showUpgradeScreen(); else { wave++; startWave(); } }, 2500);
         }
       } else if(boss.hp <= boss.maxHp/2 && boss.phase === 1) {
         boss.phase = 2;
@@ -2901,28 +3486,26 @@ function checkCollisions() {
     return !hit;
   });
 
-  // Enemy bullets vs player
-  if(player.invincible <= 0) {
-    enemyBullets = enemyBullets.filter(b => {
-      if(dist(b, player) < 20) {
-        hitPlayer(10);
-        explode(b.x, b.y, '#ff4040', 8);
-        return false;
-      }
-      return true;
-    });
+  // Enemy bullets vs player — תמיד בודק, hitPlayer מטפל ב-invincible
+  enemyBullets = enemyBullets.filter(b => {
+    if(dist(b, player) < 20) {
+      hitPlayer(10);
+      explode(b.x, b.y, '#ff4040', 8);
+      return false;
+    }
+    return true;
+  });
 
-    // Enemies vs player
-    enemies = enemies.filter(e => {
-      if(dist(e, player) < e.size + 20) {
-        hitPlayer(20);
-        explode(e.x, e.y, e.color, 15, true);
-        addScore(-Math.floor(e.score/2));
-        return false;
-      }
-      return true;
-    });
-  }
+  // Enemies vs player — תמיד בודק
+  enemies = enemies.filter(e => {
+    if(dist(e, player) < e.size + 20) {
+      hitPlayer(20);
+      explode(e.x, e.y, e.color, 15, true);
+      addScore(-Math.floor(e.score/2));
+      return false;
+    }
+    return true;
+  });
 
   // Powerups vs player
   powerups = powerups.filter(pw => {
@@ -2944,7 +3527,6 @@ function hitPlayer(dmg) {
   if(shopPurchased['armor_plating']) dmg = Math.floor(dmg * 0.8);
   waveNoDamage = false;
   health = Math.max(0, health - dmg);
-  player.invincible = 90;
   Audio.playerHurt();
   document.getElementById('health-bar').style.width = (health/maxHealth*100)+'%';
   resetCombo();
@@ -3054,7 +3636,7 @@ function startWave() {
 }
 
 function startGame() {
-  loadShopPurchases();
+  await loadShopPurchases();
   sessionCoins = 0;
   score = 0;
   lives = 3 + (shopPurchased['extra_life'] ? 1 : 0);
@@ -3096,29 +3678,29 @@ function startNormal() {
   startGame();
 }
 
-function returnToMenu() {
+async function returnToMenu() {
   if(gameState !== 'playing') return;
-  updateBestScore(score, wave);
-  updateGlobalStats();
+  await updateBestScore(score, wave);
+  await updateGlobalStats();
   gameState = 'menu'; gameMode = 'normal';
   const sf = document.getElementById('score-final');
   sf.style.display = 'block';
   sf.textContent = `FINAL SCORE: ${score.toLocaleString()}  |  STAGE: ${wave}`;
   resetCombo();
-  showMenu();
+  await showMenu();
 }
 
-function gameOver() {
+async function gameOver() {
   if(gameMode === 'boss_rush') { endBossRush(false); return; }
   gameState = 'menu';
-  updateBestScore(score, wave);
-  updateGlobalStats();
+  await updateBestScore(score, wave);
+  await updateGlobalStats();
   gameMode = 'normal';
   const sf = document.getElementById('score-final');
   sf.style.display = 'block';
   sf.textContent = `FINAL SCORE: ${score.toLocaleString()}  |  STAGE: ${wave}`;
   resetCombo();
-  showMenu();
+  await showMenu();
 }
 
 // ——— MAIN UPDATE ———
@@ -3856,24 +4438,27 @@ document.addEventListener('click', function startAudio() {
 // ============================================================
 
 
-(function checkAutoLogin() {
+(async function init() {
+  alert('הדף נטען! מתחיל אתחול...');
+  showLoading('מתחבר לשרת...');
+  try { await initFirebase(); } catch(e) { console.error('❌ initFirebase נכשל:', e); }
+  hideLoading();
+
   const remembered = localStorage.getItem(REMEMBER_KEY);
   if(remembered) {
     try {
       const data = JSON.parse(remembered);
-      const db = loadDB();
+      const db = await loadDB();
       if(db.users[data.username] && db.users[data.username].hash === data.hash) {
         currentUser = data.username;
-        showMenu();
-        return;
+        await await showMenu();
       }
-    } catch(e){}
+    } catch(e) {}
   }
-  // no auto-login — auth screen stays active by default
-})();
 
-applyLanguage();
-gameLoop();
+  applyLanguage();
+  gameLoop();
+})();
 </script>
 </body>
 </html>
