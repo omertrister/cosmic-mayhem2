@@ -1,0 +1,3879 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSMIC MAYHEM</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;700&display=swap');
+
+  :root {
+    --neon-cyan: #00f5ff;
+    --neon-pink: #ff006e;
+    --neon-yellow: #ffbe0b;
+    --neon-green: #06d6a0;
+    --dark-bg: #02020f;
+    --card-bg: rgba(0,10,40,0.85);
+    --glow-cyan: 0 0 20px #00f5ff, 0 0 40px #00f5ff44;
+    --glow-pink: 0 0 20px #ff006e, 0 0 40px #ff006e44;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark-bg);
+    font-family: 'Exo 2', sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    cursor: crosshair;
+    user-select: none;
+  }
+
+  #starfield {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #gameCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+  }
+
+  #ui {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 30px;
+  }
+
+  .hud-box {
+    background: var(--card-bg);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 8px;
+    padding: 10px 20px;
+    box-shadow: var(--glow-cyan);
+  }
+
+  .hud-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--neon-cyan);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .hud-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: var(--glow-cyan);
+  }
+
+  #health-bar-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--neon-pink);
+    border-radius: 8px;
+    padding: 10px 20px;
+    box-shadow: var(--glow-pink);
+    min-width: 200px;
+  }
+
+  #health-bar-bg {
+    background: rgba(255,0,110,0.2);
+    border-radius: 4px;
+    height: 14px;
+    margin-top: 6px;
+    overflow: hidden;
+    border: 1px solid var(--neon-pink);
+  }
+
+  #health-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff006e, #ff5e99);
+    border-radius: 4px;
+    transition: width 0.2s;
+    box-shadow: 0 0 10px #ff006e;
+  }
+
+  #wave-announce {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 40px var(--neon-yellow), 0 0 80px #ffbe0b88;
+    letter-spacing: 6px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.4s;
+  }
+
+  #combo-display {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--neon-green);
+    text-shadow: 0 0 20px var(--neon-green);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: radial-gradient(ellipse at center, rgba(0,5,25,0.97) 0%, rgba(2,2,15,0.99) 100%);
+    pointer-events: all;
+  }
+  .screen.active { display: flex; }
+
+  .game-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 58px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titlePulse 3s ease-in-out infinite;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .game-subtitle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--neon-cyan);
+    letter-spacing: 6px;
+    opacity: 0.7;
+    margin-bottom: 36px;
+  }
+  @keyframes titlePulse {
+    0%,100% { filter: drop-shadow(0 0 30px #00f5ff88); }
+    50% { filter: drop-shadow(0 0 60px #ff006e88); }
+  }
+
+  /* ===== AUTH CARD ===== */
+  .auth-card {
+    background: rgba(0,8,35,0.92);
+    border: 1px solid rgba(0,245,255,0.3);
+    border-radius: 16px;
+    padding: 36px 40px;
+    width: 380px;
+    box-shadow: 0 0 60px rgba(0,245,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), transparent);
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    background: rgba(0,245,255,0.05);
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid rgba(0,245,255,0.15);
+  }
+  .auth-tab {
+    flex: 1;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 10px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.4);
+    border-radius: 6px;
+    transition: all 0.3s;
+  }
+  .auth-tab.active {
+    background: linear-gradient(135deg, rgba(0,245,255,0.2), rgba(255,0,110,0.15));
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0,245,255,0.2);
+  }
+
+  .field-group {
+    margin-bottom: 18px;
+  }
+  .field-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--neon-cyan);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .field-input {
+    width: 100%;
+    background: rgba(0,245,255,0.04);
+    border: 1px solid rgba(0,245,255,0.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    color: #fff;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .field-input:focus {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0,245,255,0.15);
+    background: rgba(0,245,255,0.07);
+  }
+
+  .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    cursor: pointer;
+  }
+  .custom-check {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(0,245,255,0.4);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    background: transparent;
+  }
+  .custom-check.checked {
+    border-color: var(--neon-cyan);
+    background: rgba(0,245,255,0.15);
+    box-shadow: 0 0 10px rgba(0,245,255,0.3);
+  }
+  .custom-check.checked::after {
+    content: '✓';
+    color: var(--neon-cyan);
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .remember-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    font-family: 'Exo 2', sans-serif;
+  }
+
+  .auth-btn {
+    width: 100%;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 14px;
+    background: linear-gradient(135deg, rgba(0,245,255,0.15), rgba(255,0,110,0.1));
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    cursor: pointer;
+    border-radius: 8px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    box-shadow: 0 0 20px rgba(0,245,255,0.1);
+    position: relative; overflow: hidden;
+  }
+  .auth-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,245,255,0.15), transparent);
+    transition: left 0.4s;
+  }
+  .auth-btn:hover::before { left: 100%; }
+  .auth-btn:hover {
+    box-shadow: 0 0 40px rgba(0,245,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .auth-error {
+    font-size: 12px;
+    color: var(--neon-pink);
+    text-align: center;
+    margin-bottom: 14px;
+    min-height: 18px;
+    font-family: 'Exo 2', sans-serif;
+  }
+
+  /* ===== MENU SCREEN ===== */
+  .menu-content { text-align: center; max-width: 620px; }
+
+  .start-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    padding: 16px 56px;
+    background: transparent;
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    cursor: pointer;
+    border-radius: 6px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    box-shadow: var(--glow-cyan);
+    pointer-events: all;
+    position: relative; overflow: hidden;
+  }
+  .start-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,245,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  .start-btn:hover::before { left: 100%; }
+  .start-btn:hover {
+    background: rgba(0,245,255,0.1);
+    box-shadow: 0 0 40px var(--neon-cyan), 0 0 80px rgba(0,245,255,0.2);
+    transform: scale(1.04);
+  }
+
+  .menu-btns { display: flex; gap: 14px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+  .sec-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid rgba(255,190,11,0.5);
+    color: var(--neon-yellow);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+  }
+  .sec-btn:hover { background: rgba(255,190,11,0.1); box-shadow: 0 0 20px rgba(255,190,11,0.3); }
+  .sec-btn.pink { border-color: rgba(255,0,110,0.5); color: var(--neon-pink); }
+  .sec-btn.pink:hover { background: rgba(255,0,110,0.08); box-shadow: 0 0 20px rgba(255,0,110,0.2); }
+
+  .welcome-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .welcome-text span { color: var(--neon-cyan); }
+
+  .instructions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: left;
+  }
+  .inst-item {
+    background: rgba(0,245,255,0.04);
+    border: 1px solid rgba(0,245,255,0.15);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+  }
+  .inst-item span { color: var(--neon-yellow); font-weight: 700; }
+
+  #score-final {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 20px var(--neon-yellow);
+    margin-bottom: 24px;
+  }
+
+  /* ===== LEADERBOARD ===== */
+  #lb-screen .lb-inner {
+    width: min(860px, 96vw);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lb-header {
+    text-align: center;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+  }
+  .lb-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(90deg, var(--neon-yellow), #ff8800, var(--neon-pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 4px;
+  }
+  .lb-sub { font-family: 'Orbitron', sans-serif; font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 4px; }
+
+  /* Podium */
+  .podium-wrap {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-shrink: 0;
+  }
+  .podium-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .podium-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    border: 2px solid;
+  }
+  .podium-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .podium-pts {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .podium-wave { font-size: 10px; color: rgba(255,255,255,0.4); font-family: 'Exo 2', sans-serif; }
+  .podium-block {
+    border-radius: 8px 8px 0 0;
+    width: 110px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    position: relative;
+  }
+  .podium-block::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 8px 8px 0 0;
+  }
+  .place-1 .podium-avatar { border-color: #ffd700; background: rgba(255,215,0,0.15); color: #ffd700; }
+  .place-1 .podium-name, .place-1 .podium-pts { color: #ffd700; }
+  .place-1 .podium-block { background: linear-gradient(180deg, rgba(255,215,0,0.18) 0%, rgba(255,215,0,0.04) 100%); height: 120px; color: #ffd700; border: 1px solid rgba(255,215,0,0.3); }
+  .place-1 .podium-block::after { background: #ffd700; box-shadow: 0 0 20px #ffd700; }
+
+  .place-2 .podium-avatar { border-color: #c0c0c0; background: rgba(192,192,192,0.12); color: #c0c0c0; }
+  .place-2 .podium-name, .place-2 .podium-pts { color: #c0c0c0; }
+  .place-2 .podium-block { background: linear-gradient(180deg, rgba(192,192,192,0.15) 0%, rgba(192,192,192,0.03) 100%); height: 90px; color: #c0c0c0; border: 1px solid rgba(192,192,192,0.25); }
+  .place-2 .podium-block::after { background: #c0c0c0; box-shadow: 0 0 15px #c0c0c0; }
+
+  .place-3 .podium-avatar { border-color: #cd7f32; background: rgba(205,127,50,0.12); color: #cd7f32; }
+  .place-3 .podium-name, .place-3 .podium-pts { color: #cd7f32; }
+  .place-3 .podium-block { background: linear-gradient(180deg, rgba(205,127,50,0.15) 0%, rgba(205,127,50,0.03) 100%); height: 70px; color: #cd7f32; border: 1px solid rgba(205,127,50,0.25); }
+  .place-3 .podium-block::after { background: #cd7f32; box-shadow: 0 0 12px #cd7f32; }
+
+  /* Table */
+  .lb-table-wrap {
+    overflow-y: auto;
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid rgba(0,245,255,0.12);
+    background: rgba(0,5,20,0.6);
+  }
+  .lb-table-wrap::-webkit-scrollbar { width: 6px; }
+  .lb-table-wrap::-webkit-scrollbar-track { background: rgba(0,245,255,0.04); }
+  .lb-table-wrap::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); border-radius: 3px; }
+
+  .lb-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 120px 80px;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(0,245,255,0.06);
+    transition: background 0.2s;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: rgba(0,245,255,0.04); }
+  .lb-row.me { background: rgba(0,245,255,0.07); border-left: 2px solid var(--neon-cyan); }
+
+  .lb-rank {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+  }
+  .lb-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .lb-mini-av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    background: rgba(0,245,255,0.1);
+    border: 1px solid rgba(0,245,255,0.25);
+    color: var(--neon-cyan);
+    flex-shrink: 0;
+  }
+  .lb-username {
+    font-family: 'Exo 2', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .lb-score-cell {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neon-yellow);
+    text-align: right;
+  }
+  .lb-wave-cell {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-align: right;
+  }
+  .lb-col-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(0,245,255,0.5);
+    padding: 10px 20px 8px;
+    border-bottom: 1px solid rgba(0,245,255,0.12);
+    display: grid;
+    grid-template-columns: 48px 1fr 120px 80px;
+  }
+  .lb-col-header span:last-child, .lb-col-header span:nth-child(3) { text-align: right; }
+
+  .lb-back-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 10px 28px;
+    background: transparent;
+    border: 1px solid rgba(0,245,255,0.3);
+    color: rgba(0,245,255,0.6);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    margin-top: 16px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .lb-back-btn:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0,245,255,0.2); }
+
+  /* Journal tabs */
+  .j-tab {
+    font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;
+    padding:8px 16px;background:rgba(255,140,0,0.05);
+    border:1px solid rgba(255,140,0,0.2);color:rgba(255,255,255,0.45);
+    cursor:pointer;border-radius:6px;transition:all 0.25s;
+  }
+  .j-tab:hover { background:rgba(255,140,0,0.12); color:rgba(255,255,255,0.7); }
+  .j-tab.active { background:rgba(255,140,0,0.15);border-color:rgba(255,140,0,0.5);color:#ff8c00;box-shadow:0 0 12px rgba(255,140,0,0.2); }
+
+  /* Journal timeline */
+  .j-entry {
+    display:flex;gap:18px;padding:18px 20px;margin-bottom:12px;
+    background:rgba(0,5,20,0.6);border:1px solid rgba(255,140,0,0.12);
+    border-radius:12px;position:relative;overflow:hidden;
+    transition:all 0.25s;
+  }
+  .j-entry:hover { border-color:rgba(255,140,0,0.3);background:rgba(255,140,0,0.04); }
+  .j-entry::before {
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    border-radius:3px 0 0 3px;
+  }
+  .j-entry.win::before { background:linear-gradient(180deg,#ffbe0b,#ff8c00); }
+  .j-entry.loss::before { background:linear-gradient(180deg,#ff006e,#aa0040); }
+  .j-entry.rush::before { background:linear-gradient(180deg,#ff006e,#ff8800,#ffbe0b); }
+
+  .j-boss-icon { font-size:36px;flex-shrink:0;display:flex;align-items:center; }
+  .j-info { flex:1; }
+  .j-boss-name { font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:4px; }
+  .j-meta { font-family:'Exo 2',sans-serif;font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:6px; }
+  .j-tags { display:flex;gap:6px;flex-wrap:wrap; }
+  .j-tag { font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:4px; }
+  .j-tag.win { background:rgba(255,190,11,0.15);border:1px solid rgba(255,190,11,0.35);color:#ffbe0b; }
+  .j-tag.loss { background:rgba(255,0,110,0.12);border:1px solid rgba(255,0,110,0.3);color:#ff006e; }
+  .j-tag.mode { background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.2);color:#00f5ff; }
+  .j-tag.score { background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:#c084fc; }
+  .j-right { display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;flex-shrink:0; }
+  .j-date { font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(255,255,255,0.3); }
+  .j-score-big { font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:#ffbe0b; }
+
+  /* Boss Rush cards */
+  .br-card {
+    width:160px;background:rgba(0,5,25,0.8);border-radius:12px;padding:16px;
+    text-align:center;border:1px solid rgba(255,0,110,0.2);
+    transition:all 0.3s;position:relative;overflow:hidden;flex-shrink:0;
+  }
+  .br-card.beaten { border-color:rgba(255,190,11,0.4);background:rgba(255,190,11,0.05); }
+  .br-card:hover { border-color:rgba(255,0,110,0.5);transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,0,110,0.2); }
+  .br-card-icon { font-size:40px;margin-bottom:8px; }
+  .br-card-name { font-family:'Orbitron',sans-serif;font-size:11px;color:#fff;letter-spacing:1px;margin-bottom:4px; }
+  .br-card-rank { font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(255,255,255,0.4); }
+  .br-card-best { font-family:'Orbitron',sans-serif;font-size:10px;color:#ffbe0b;margin-top:6px; }
+  .br-card-badge { position:absolute;top:8px;right:8px;font-size:16px; }
+  #journal-timeline::-webkit-scrollbar { width:5px; }
+  #journal-timeline::-webkit-scrollbar-thumb { background:rgba(255,140,0,0.3);border-radius:3px; }
+
+  #powerup-display {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .powerup-icon {
+    font-size: 28px;
+    background: var(--card-bg);
+    border: 1px solid var(--neon-yellow);
+    border-radius: 8px;
+    width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 15px rgba(255,190,11,0.5);
+    animation: powerupPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes powerupPulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .dmg-number {
+    position: absolute;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 50;
+    animation: floatUp 1s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+  }
+
+  #special-bar-wrap {
+    position: absolute;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--neon-yellow);
+    border-radius: 8px;
+    padding: 8px 16px;
+    pointer-events: none;
+    min-width: 220px;
+    box-shadow: 0 0 15px rgba(255,190,11,0.3);
+  }
+
+  #special-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    color: var(--neon-yellow);
+    letter-spacing: 3px;
+    margin-bottom: 5px;
+  }
+
+  #special-bar-bg {
+    background: rgba(255,190,11,0.15);
+    border-radius: 4px;
+    height: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,190,11,0.3);
+  }
+
+  #special-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffbe0b, #ff8800);
+    border-radius: 4px;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px #ffbe0b;
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+  <div id="hud">
+    <!-- LEFT: score + menu btn -->
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div class="hud-box">
+        <div class="hud-label" data-i18n="score">Score</div>
+        <div class="hud-value" id="score-display">0</div>
+      </div>
+      <button id="menu-btn" onclick="returnToMenu()" style="
+        font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;
+        padding:8px 14px;background:rgba(255,0,110,0.08);
+        border:1px solid rgba(255,0,110,0.4);color:rgba(255,0,110,0.8);
+        cursor:pointer;border-radius:6px;transition:all 0.3s;
+        pointer-events:all;margin-top:4px;
+      " onmouseover="this.style.background='rgba(255,0,110,0.18)';this.style.boxShadow='0 0 15px rgba(255,0,110,0.3)'"
+         onmouseout="this.style.background='rgba(255,0,110,0.08)';this.style.boxShadow='none'">
+        ← <span data-i18n="menu">תפריט</span>
+      </button>
+    </div>
+
+    <!-- RIGHT: shields + stage + lang + coins + lives -->
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div id="health-bar-wrap">
+        <div class="hud-label" data-i18n="shields">SHIELDS</div>
+        <div id="health-bar-bg"><div id="health-bar" style="width:100%"></div></div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label" data-i18n="stage">STAGE</div>
+        <div class="hud-value" id="wave-display">1</div>
+      </div>
+
+      <!-- Language button -->
+      <button id="lang-btn" onclick="toggleLangMenu(event)" style="
+        font-family:'Exo 2',sans-serif;font-size:13px;
+        padding:8px 14px;background:rgba(0,245,255,0.06);
+        border:1px solid rgba(0,245,255,0.3);color:rgba(255,255,255,0.8);
+        cursor:pointer;border-radius:8px;transition:all 0.3s;
+        pointer-events:all;display:flex;align-items:center;gap:6px;white-space:nowrap;margin-top:0;
+      " onmouseover="this.style.background='rgba(0,245,255,0.14)'" onmouseout="this.style.background='rgba(0,245,255,0.06)'">
+        🌐 <span id="lang-label">שפה</span>
+      </button>
+
+      <div class="hud-box" style="border-color:rgba(255,190,11,0.5);box-shadow:0 0 20px rgba(255,190,11,0.2)">
+        <div class="hud-label" style="color:#ffbe0b" data-i18n="coins">⭐ מטבעות</div>
+        <div class="hud-value" id="coin-display" style="color:#ffbe0b;text-shadow:0 0 15px #ffbe0b">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label" data-i18n="lives">LIVES</div>
+        <div class="hud-value" id="lives-display">❤️❤️❤️</div>
+      </div>
+    </div>
+  </div>
+
+
+  </div>
+
+  <div id="special-bar-wrap">
+    <div id="special-label">NOVA CHARGE — [SPACE]</div>
+    <div id="special-bar-bg"><div id="special-bar"></div></div>
+  </div>
+
+  <div id="shield-bar-wrap">
+    <div class="mini-bar-label" style="color:#00f5ff">🔵 SHIELD [E]</div>
+    <div class="mini-bar-bg" style="border-color:rgba(0,245,255,0.2)"><div class="mini-bar-fill" id="shield-fill" style="background:linear-gradient(90deg,#00f5ff,#0088ff);width:100%"></div></div>
+  </div>
+  <div id="dash-bar-wrap">
+    <div class="mini-bar-label" style="color:#a855f7">💨 DASH [Q]</div>
+    <div class="mini-bar-bg" style="border-color:rgba(168,85,247,0.2)"><div class="mini-bar-fill" id="dash-fill" style="background:linear-gradient(90deg,#a855f7,#6600ff);width:100%"></div></div>
+  </div>
+
+  <div id="powerup-display"></div>
+  <div id="combo-display"></div>
+  <div id="wave-announce"></div>
+</div>
+
+<!-- LANGUAGE DROPDOWN - outside all containers so pointer-events work everywhere -->
+<div id="lang-menu" style="
+  display:none;position:fixed;bottom:70px;right:20px;
+  background:rgba(0,8,35,0.97);border:1px solid rgba(0,245,255,0.3);
+  border-radius:12px;padding:8px;z-index:99999;
+  box-shadow:0 0 40px rgba(0,245,255,0.2);min-width:210px;
+  max-height:440px;overflow-y:auto;
+"></div>
+
+<!-- GLOBAL LANGUAGE BUTTON - visible on all screens -->
+<button id="global-lang-btn" onclick="toggleLangMenu(event)" style="
+  position:fixed;bottom:20px;right:20px;z-index:9998;
+  font-family:'Exo 2',sans-serif;font-size:13px;
+  padding:10px 16px;background:rgba(0,8,35,0.92);
+  border:1px solid rgba(0,245,255,0.35);color:rgba(255,255,255,0.85);
+  cursor:pointer;border-radius:10px;transition:all 0.3s;
+  display:flex;align-items:center;gap:7px;white-space:nowrap;
+  box-shadow:0 0 20px rgba(0,245,255,0.1);
+" onmouseover="this.style.background='rgba(0,245,255,0.12)';this.style.borderColor='#00f5ff'"
+   onmouseout="this.style.background='rgba(0,8,35,0.92)';this.style.borderColor='rgba(0,245,255,0.35)'">
+  🌐 <span id="global-lang-label">שפה</span>
+</button>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="screen active">
+  <div style="text-align:center">
+    <div class="game-title">COSMIC<br>MAYHEM</div>
+    <div class="game-subtitle">— HYPERSPACE SHOOTER —</div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')" data-i18n="login">התחברות</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')" data-i18n="register">יצירת חשבון</button>
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+      <div class="field-group">
+        <label class="field-label" data-i18n="username">שם משתמש</label>
+        <input class="field-input" id="auth-username" type="text" data-i18n-ph="usernamePh" placeholder="הכנס שם משתמש..." autocomplete="username" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" data-i18n="password">סיסמה</label>
+        <input class="field-input" id="auth-password" type="password" data-i18n-ph="passwordPh" placeholder="הכנס סיסמה..." autocomplete="current-password" />
+      </div>
+      <div class="remember-row" id="remember-row" onclick="toggleRemember()">
+        <div class="custom-check" id="remember-check"></div>
+        <span class="remember-label" data-i18n="rememberMe">זכור אותי במכשיר זה</span>
+      </div>
+      <button class="auth-btn" id="auth-submit-btn" onclick="submitAuth()" data-i18n="loginBtn">התחבר</button>
+    </div>
+  </div>
+</div>
+
+<!-- MENU SCREEN -->
+<div id="menu-screen" class="screen">
+  <div class="menu-content">
+    <div class="game-title">COSMIC<br>MAYHEM</div>
+    <div class="game-subtitle">— HYPERSPACE SHOOTER —</div>
+    <div class="welcome-text"><span data-i18n="hello">שלום</span>, <span id="welcome-name"></span> 👋</div>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(0,8,35,0.8);border:1px solid rgba(255,190,11,0.4);border-radius:12px;padding:10px 22px;margin-bottom:20px;box-shadow:0 0 25px rgba(255,190,11,0.15)">
+      <span style="font-size:24px">⭐</span>
+      <div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,190,11,0.6);letter-spacing:3px" data-i18n="myCoins">המטבעות שלי</div>
+        <div id="menu-coin-display" style="font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#ffbe0b;text-shadow:0 0 15px #ffbe0b;line-height:1.1">0</div>
+      </div>
+    </div>
+    <div id="score-final" style="display:none;margin-bottom:18px"></div>
+    <div class="menu-btns">
+      <button class="start-btn" id="start-btn" onclick="startNormal()" data-i18n="launch">LAUNCH MISSION</button>
+    </div>
+    <div class="menu-btns">
+      <button class="sec-btn" onclick="startEndless()" data-i18n="endless">♾️ Endless Mode</button>
+      <button class="sec-btn" onclick="startBossRush()" style="border-color:rgba(255,0,110,0.5);color:#ff006e">💀 Boss Rush</button>
+      <button class="sec-btn" onclick="showJournal()" style="border-color:rgba(255,140,0,0.5);color:#ff8c00">📖 יומן הרפתקה</button>
+      <button class="sec-btn" onclick="showLeaderboard()" data-i18n="leaderboard">🏆 טבלת מובילים</button>
+      <button class="sec-btn" onclick="showStats()" data-i18n="stats">📊 סטטיסטיקות</button>
+      <button class="sec-btn" style="border-color:rgba(255,190,11,0.5);color:#ffbe0b" onclick="showShop()" data-i18n="shop">⭐ חנות שדרוגים</button>
+      <button class="sec-btn pink" onclick="logout()" data-i18n="logout">🚪 התנתק</button>
+    </div>
+    <div class="instructions">
+      <div class="inst-item">🖱️ <span>Mouse</span> — <span data-i18n="moveShip">הזזת הספינה</span></div>
+      <div class="inst-item">🖱️ <span>Click</span> — <span data-i18n="shoot">ירי</span></div>
+      <div class="inst-item">⌨️ <span>Space</span> — Nova Bomb</div>
+      <div class="inst-item">⌨️ <span>Shift</span> — Turbo</div>
+      <div class="inst-item">⌨️ <span>E</span> — <span data-i18n="shield">מגן מסתובב</span></div>
+      <div class="inst-item">⌨️ <span>Q</span> — <span data-i18n="dash">Dash מהיר</span></div>
+      <div class="inst-item">⭐ <span data-i18n="yellow">צהוב</span> — <span data-i18n="collectPts">אסוף לנקודות!</span></div>
+      <div class="inst-item">💀 <span data-i18n="pink">ורוד</span> — <span data-i18n="avoidPts">הימנע! מוריד נקודות</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPGRADE SCREEN -->
+<div id="upgrade-screen" class="screen">
+  <div style="text-align:center;max-width:900px;width:96vw">
+    <div class="upgrade-wave" style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:#ffbe0b;text-shadow:0 0 30px #ffbe0b;margin-bottom:6px"></div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:4px;margin-bottom:24px">CHOOSE AN UPGRADE</div>
+    <div class="upgrade-grid"></div>
+    <button class="lb-back-btn" onclick="closeUpgradeAndContinue()" data-i18n="skipUpgrade">דלג → המשך לשלב הבא</button>
+  </div>
+</div>
+
+<!-- BOSS RUSH SELECT SCREEN -->
+<div id="bossrush-screen" class="screen">
+  <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;box-sizing:border-box">
+    <div style="font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;letter-spacing:6px;margin-bottom:6px;
+      background:linear-gradient(135deg,#ff006e,#ff8800,#ffbe0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+      💀 BOSS RUSH
+    </div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:5px;margin-bottom:10px">— SURVIVE THEM ALL —</div>
+    <div id="br-lives-info" style="font-family:'Exo 2',sans-serif;font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:30px">3 חיים • בוסים אחד אחרי השני • קושי עולה</div>
+
+    <!-- Boss grid -->
+    <div id="br-boss-grid" style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;max-width:900px;margin-bottom:30px;overflow-y:auto;max-height:55vh"></div>
+
+    <div style="display:flex;gap:14px">
+      <button onclick="launchBossRush()" style="
+        font-family:'Orbitron',sans-serif;font-size:15px;font-weight:700;letter-spacing:4px;
+        padding:16px 48px;background:linear-gradient(135deg,rgba(255,0,110,0.2),rgba(255,140,0,0.15));
+        border:2px solid #ff006e;color:#ff006e;cursor:pointer;border-radius:8px;transition:all 0.3s;
+        box-shadow:0 0 25px rgba(255,0,110,0.2)
+      " onmouseover="this.style.background='rgba(255,0,110,0.25)';this.style.boxShadow='0 0 40px rgba(255,0,110,0.4)'"
+         onmouseout="this.style.background='linear-gradient(135deg,rgba(255,0,110,0.2),rgba(255,140,0,0.15))';this.style.boxShadow='0 0 25px rgba(255,0,110,0.2)'">
+        ⚔️ התחל Rush
+      </button>
+      <button class="lb-back-btn" onclick="showMenu()">← חזור לתפריט</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNAL SCREEN -->
+<div id="journal-screen" class="screen">
+  <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:28px 36px;box-sizing:border-box">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-shrink:0">
+      <button class="lb-back-btn" onclick="showMenu()">← חזור לתפריט</button>
+      <div style="text-align:center">
+        <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;letter-spacing:5px;
+          background:linear-gradient(90deg,#ff8c00,#ffbe0b,#ff8c00);-webkit-background-clip:text;
+          -webkit-text-fill-color:transparent;background-clip:text">📖 יומן הרפתקה</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:4px;margin-top:3px">ADVENTURE LOG</div>
+      </div>
+      <div style="min-width:120px;text-align:right">
+        <div id="journal-total" style="font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(255,255,255,0.4)"></div>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-shrink:0">
+      <button class="j-tab active" onclick="filterJournal('all')" id="jtab-all">📜 הכל</button>
+      <button class="j-tab" onclick="filterJournal('boss_normal')" id="jtab-boss_normal">⚔️ מצב רגיל</button>
+      <button class="j-tab" onclick="filterJournal('boss_rush')" id="jtab-boss_rush">💀 Boss Rush</button>
+      <button class="j-tab" onclick="filterJournal('endless')" id="jtab-endless">♾️ Endless</button>
+    </div>
+
+    <!-- Timeline -->
+    <div id="journal-timeline" style="flex:1;overflow-y:auto;padding-right:8px;
+      scrollbar-width:thin;scrollbar-color:rgba(255,140,0,0.3) transparent"></div>
+  </div>
+</div>
+
+<!-- BOSS RUSH RESULT SCREEN -->
+<div id="br-result-screen" class="screen">
+  <div style="text-align:center;max-width:600px;padding:40px">
+    <div id="br-result-title" style="font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;margin-bottom:8px"></div>
+    <div id="br-result-sub" style="font-family:'Orbitron',sans-serif;font-size:13px;color:rgba(255,255,255,0.4);letter-spacing:4px;margin-bottom:30px"></div>
+    <div id="br-result-stats" style="margin-bottom:30px"></div>
+    <div style="display:flex;gap:14px;justify-content:center">
+      <button onclick="startBossRush()" style="font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;padding:14px 36px;
+        background:rgba(255,0,110,0.15);border:1px solid #ff006e;color:#ff006e;cursor:pointer;border-radius:8px;transition:all 0.3s"
+        onmouseover="this.style.background='rgba(255,0,110,0.25)'" onmouseout="this.style.background='rgba(255,0,110,0.15)'">🔄 שחק שוב</button>
+      <button class="lb-back-btn" onclick="showMenu()">← תפריט</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS SCREEN -->
+<div id="stats-screen" class="screen">
+  <div style="max-width:820px;width:96vw;max-height:92vh;overflow-y:auto">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="lb-title" style="font-family:'Orbitron',sans-serif;font-size:30px;font-weight:900;background:linear-gradient(90deg,#00f5ff,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">📊 STATISTICS</div>
+    </div>
+    <div id="stats-body"></div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="lb-back-btn" onclick="showMenu()" data-i18n="backToMenu">← חזור לתפריט</button>
+    </div>
+  </div>
+</div>
+<!-- SHOP SCREEN -->
+<div id="shop-screen" class="screen">
+  <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:24px 30px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-shrink:0">
+      <button onclick="showMenu()" style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;padding:10px 22px;background:transparent;border:1px solid rgba(0,245,255,0.3);color:rgba(0,245,255,0.7);cursor:pointer;border-radius:6px;transition:all 0.3s"
+        onmouseover="this.style.borderColor='#00f5ff';this.style.color='#00f5ff'"
+        onmouseout="this.style.borderColor='rgba(0,245,255,0.3)';this.style.color='rgba(0,245,255,0.7)'" data-i18n="backToMenu">← חזור לתפריט</button>
+      <div style="text-align:center">
+        <div style="font-family:'Orbitron',sans-serif;font-size:30px;font-weight:900;letter-spacing:5px;background:linear-gradient(90deg,#ffbe0b,#ff8800,#ffbe0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">⭐ COSMIC SHOP</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:4px;margin-top:3px">PERMANENT UPGRADES — SCROLL →</div>
+      </div>
+      <div style="background:rgba(0,8,35,0.9);border:1px solid rgba(255,190,11,0.4);border-radius:10px;padding:10px 18px;text-align:center;box-shadow:0 0 20px rgba(255,190,11,0.15)">
+        <div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,190,11,0.6);letter-spacing:2px">המטבעות שלי</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          <span style="font-size:18px">⭐</span>
+          <span id="shop-coin-display" style="font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#ffbe0b">0</span>
+        </div>
+      </div>
+    </div>
+    <div id="shop-grid" style="display:flex;gap:18px;overflow-x:auto;padding:8px 4px 20px;flex:1;align-items:flex-start;scrollbar-width:thin;scrollbar-color:rgba(255,190,11,0.4) rgba(0,5,20,0.5)"></div>
+  </div>
+</div>
+
+<div id="lb-screen" class="screen">
+  <div class="lb-inner">
+    <div class="lb-header">
+      <div class="lb-title">🏆 HALL OF FAME</div>
+      <div class="lb-sub">— TOP COMMANDERS —</div>
+    </div>
+    <div id="podium-wrap" class="podium-wrap"></div>
+    <div class="lb-col-header">
+      <span>#</span><span>שחקן</span><span>שיא נקודות</span><span>שלב</span>
+    </div>
+    <div class="lb-table-wrap" id="lb-table"></div>
+    <button class="lb-back-btn" onclick="showMenu()" data-i18n="backToMenu">← חזור לתפריט</button>
+  </div>
+</div>
+
+<script>
+// ========== i18n LANGUAGE SYSTEM ==========
+const LANG_KEY = 'cosmicmayhem_lang';
+
+const LANGUAGES = [
+  { code:'he', name:'עברית',    flag:'🇮🇱', dir:'rtl' },
+  { code:'en', name:'English',  flag:'🇺🇸', dir:'ltr' },
+  { code:'ar', name:'العربية',  flag:'🇸🇦', dir:'rtl' },
+  { code:'fr', name:'Français', flag:'🇫🇷', dir:'ltr' },
+  { code:'es', name:'Español',  flag:'🇪🇸', dir:'ltr' },
+  { code:'de', name:'Deutsch',  flag:'🇩🇪', dir:'ltr' },
+  { code:'ru', name:'Русский',  flag:'🇷🇺', dir:'ltr' },
+  { code:'zh', name:'中文',      flag:'🇨🇳', dir:'ltr' },
+  { code:'ja', name:'日本語',    flag:'🇯🇵', dir:'ltr' },
+  { code:'ko', name:'한국어',    flag:'🇰🇷', dir:'ltr' },
+  { code:'pt', name:'Português',flag:'🇧🇷', dir:'ltr' },
+  { code:'it', name:'Italiano', flag:'🇮🇹', dir:'ltr' },
+  { code:'tr', name:'Türkçe',   flag:'🇹🇷', dir:'ltr' },
+  { code:'hi', name:'हिन्दी',     flag:'🇮🇳', dir:'ltr' },
+  { code:'pl', name:'Polski',   flag:'🇵🇱', dir:'ltr' },
+];
+
+const TRANSLATIONS = {
+  he: {
+    login:'התחברות', register:'יצירת חשבון', username:'שם משתמש', password:'סיסמה',
+    usernamePh:'הכנס שם משתמש...', passwordPh:'הכנס סיסמה...',
+    rememberMe:'זכור אותי במכשיר זה', loginBtn:'התחבר', registerBtn:'צור חשבון',
+    hello:'שלום', myCoins:'המטבעות שלי', launch:'LAUNCH MISSION',
+    endless:'♾️ Endless Mode', leaderboard:'🏆 טבלת מובילים', stats:'📊 סטטיסטיקות',
+    shop:'⭐ חנות שדרוגים', logout:'🚪 התנתק',
+    moveShip:'הזזת הספינה', shoot:'ירי', shield:'מגן מסתובב', dash:'Dash מהיר',
+    yellow:'צהוב', collectPts:'אסוף לנקודות!', pink:'ורוד', avoidPts:'הימנע! מוריד נקודות',
+    score:'ניקוד', stage:'שלב', lives:'חיים', coins:'⭐ מטבעות', shields:'מגן',
+    menu:'תפריט', skipUpgrade:'דלג → המשך לשלב הבא', lang:'שפה',
+    errShortUser:'⚠ שם משתמש חייב להכיל לפחות 2 תווים',
+    errShortPass:'⚠ סיסמה חייבת להכיל לפחות 3 תווים',
+    errUserExists:'⚠ שם משתמש כבר קיים, בחר שם אחר',
+    errNoUser:'⚠ שם משתמש לא קיים', errWrongPass:'⚠ סיסמה שגויה',
+    backToMenu:'← חזור לתפריט', chooseUpgrade:'בחר שדרוג',
+    stageComplete:'הושלם!', maxed:'מקסימלי', needCoins:'חסר {n} ⭐',
+    you:'אתה', noPlayers:'אין שחקנים עדיין',
+    rarity_common:'נפוץ', rarity_uncommon:'בינוני', rarity_rare:'נדיר', rarity_epic:'אגדי',
+    upg_fireRate:'קצב ירי', upg_fireRate_d:'ירי מהיר יותר',
+    upg_maxHp:'מגן מקסימלי', upg_maxHp_d:'+25 מגן לכל שדרוג',
+    upg_shield:'טעינת מגן', upg_shield_d:'מגן חוזר מהר יותר',
+    upg_dash:'Dash חזק', upg_dash_d:'Dash מהיר ורחוק יותר',
+    upg_orbit:'אורביטל', upg_orbit_d:'כדור הגנה סביב הספינה',
+    sh_coin_magnet:'מגנט מטבעות', sh_coin_magnet_d:'כדורים צהובים נמשכים אליך',
+    sh_extra_life:'לב נוסף', sh_extra_life_d:'מתחיל עם חיים נוספים',
+    sh_double_coins:'כפל מטבעות', sh_double_coins_d:'כל מטבע שווה כפול',
+    sh_auto_shield:'מגן אוטומטי', sh_auto_shield_d:'מגן מופעל כשה-HP נמוך',
+    sh_piercing:'ירי מחורר', sh_piercing_d:'כדורים עוברים דרך אויבים',
+    sh_coin_bonus:'בונוס מטבעות', sh_coin_bonus_d:'+מטבעות לכל כדור צהוב',
+    sh_start_bombs:'פצצות התחלה', sh_start_bombs_d:'מתחיל עם Nova טעון',
+    sh_health_regen:'רגנרציה', sh_health_regen_d:'HP חוזר לאט לאט',
+    sh_faster_orbs:'טווח איסוף', sh_faster_orbs_d:'אוספים כדורים ממרחק גדול',
+    sh_bullet_size:'כדורים ענקיים', sh_bullet_size_d:'כדורי ירי גדולים יותר',
+    sh_xp_mult:'בוסט ניקוד', sh_xp_mult_d:'x2/x3 נקודות',
+    sh_ghost_dash:'Dash-רוח', sh_ghost_dash_d:'Dash עובר דרך אויבים',
+    sh_nova_chain:'Nova שרשרת', sh_nova_chain_d:'Nova טוענת 30% מהר',
+    sh_coin_fountain:'מזרקת מטבעות', sh_coin_fountain_d:'אויבים מוציאים מטבעות',
+    sh_armor:'שריון כבד', sh_armor_d:'20% פחות נזק',
+  },
+  en: {
+    login:'Login', register:'Create Account', username:'Username', password:'Password',
+    usernamePh:'Enter username...', passwordPh:'Enter password...',
+    rememberMe:'Remember me on this device', loginBtn:'Login', registerBtn:'Create Account',
+    hello:'Hello', myCoins:'My Coins', launch:'LAUNCH MISSION',
+    endless:'♾️ Endless Mode', leaderboard:'🏆 Leaderboard', stats:'📊 Statistics',
+    shop:'⭐ Upgrade Shop', logout:'🚪 Logout',
+    moveShip:'Move ship', shoot:'Shoot', shield:'Rotating Shield', dash:'Quick Dash',
+    yellow:'Yellow', collectPts:'Collect for points!', pink:'Pink', avoidPts:'Avoid! Loses points',
+    score:'SCORE', stage:'STAGE', lives:'LIVES', coins:'⭐ COINS', shields:'SHIELDS',
+    menu:'Menu', skipUpgrade:'Skip → Next Stage', lang:'Language',
+    errShortUser:'⚠ Username must be at least 2 characters',
+    errShortPass:'⚠ Password must be at least 3 characters',
+    errUserExists:'⚠ Username already exists', errNoUser:'⚠ Username not found',
+    errWrongPass:'⚠ Wrong password', backToMenu:'← Back to Menu', chooseUpgrade:'CHOOSE AN UPGRADE',
+    stageComplete:'COMPLETE!', maxed:'Maxed', needCoins:'Need {n} more ⭐',
+    you:'You', noPlayers:'No players yet',
+    rarity_common:'Common', rarity_uncommon:'Uncommon', rarity_rare:'Rare', rarity_epic:'Epic',
+    upg_fireRate:'Fire Rate', upg_fireRate_d:'Shoot faster',
+    upg_maxHp:'Max Shield', upg_maxHp_d:'+25 shield per upgrade',
+    upg_shield:'Shield Recharge', upg_shield_d:'Shield returns faster',
+    upg_dash:'Strong Dash', upg_dash_d:'Faster and longer dash',
+    upg_orbit:'Orbital', upg_orbit_d:'Defense ball around ship',
+    sh_coin_magnet:'Coin Magnet', sh_coin_magnet_d:'Yellow orbs attract to you',
+    sh_extra_life:'Extra Life', sh_extra_life_d:'Start with extra life',
+    sh_double_coins:'Double Coins', sh_double_coins_d:'Each coin worth double',
+    sh_auto_shield:'Auto Shield', sh_auto_shield_d:'Shield activates on low HP',
+    sh_piercing:'Piercing Shots', sh_piercing_d:'Bullets pass through enemies',
+    sh_coin_bonus:'Coin Bonus', sh_coin_bonus_d:'+coins per yellow orb',
+    sh_start_bombs:'Start Bombs', sh_start_bombs_d:'Start with Nova charged',
+    sh_health_regen:'Regeneration', sh_health_regen_d:'HP slowly recovers',
+    sh_faster_orbs:'Orb Range', sh_faster_orbs_d:'Collect orbs from further',
+    sh_bullet_size:'Big Bullets', sh_bullet_size_d:'Larger bullet hitbox',
+    sh_xp_mult:'Score Boost', sh_xp_mult_d:'x2/x3 score multiplier',
+    sh_ghost_dash:'Ghost Dash', sh_ghost_dash_d:'Dash through enemies',
+    sh_nova_chain:'Nova Chain', sh_nova_chain_d:'Nova charges 30% faster',
+    sh_coin_fountain:'Coin Fountain', sh_coin_fountain_d:'Enemies drop extra coins',
+    sh_armor:'Heavy Armor', sh_armor_d:'Take 20% less damage',
+  },
+  ar: {
+    login:'تسجيل الدخول', register:'إنشاء حساب', username:'اسم المستخدم', password:'كلمة المرور',
+    usernamePh:'أدخل اسم المستخدم...', passwordPh:'أدخل كلمة المرور...',
+    rememberMe:'تذكرني على هذا الجهاز', loginBtn:'دخول', registerBtn:'إنشاء حساب',
+    hello:'مرحباً', myCoins:'عملاتي', launch:'ابدأ المهمة',
+    endless:'♾️ وضع لانهائي', leaderboard:'🏆 المتصدرين', stats:'📊 إحصائيات',
+    shop:'⭐ متجر التطوير', logout:'🚪 خروج',
+    moveShip:'تحريك السفينة', shoot:'إطلاق نار', shield:'درع دوار', dash:'اندفاع سريع',
+    yellow:'أصفر', collectPts:'اجمع للنقاط!', pink:'وردي', avoidPts:'تجنب! يخصم نقاطاً',
+    score:'النقاط', stage:'المرحلة', shields:'الدرع', lives:'الأرواح', coins:'⭐ العملات',
+    menu:'القائمة', skipUpgrade:'تخطي ← المرحلة التالية', lang:'اللغة',
+    errShortUser:'⚠ يجب أن يحتوي الاسم على حرفين على الأقل',
+    errShortPass:'⚠ يجب أن تحتوي الكلمة على 3 أحرف على الأقل',
+    errUserExists:'⚠ اسم المستخدم موجود بالفعل', errNoUser:'⚠ اسم المستخدم غير موجود',
+    errWrongPass:'⚠ كلمة المرور خاطئة', backToMenu:'← العودة للقائمة', chooseUpgrade:'اختر تطويراً',
+    stageComplete:'مكتمل!', maxed:'الحد الأقصى', needCoins:'تحتاج {n} ⭐ أكثر', you:'أنت', noPlayers:'لا يوجد لاعبون', rarity_common:'شائع', rarity_uncommon:'غير شائع', rarity_rare:'نادر', rarity_epic:'أسطوري',
+  },
+  fr: {
+    login:'Connexion', register:'Créer un compte', username:'Nom d\'utilisateur', password:'Mot de passe',
+    usernamePh:'Entrez le nom...', passwordPh:'Entrez le mot de passe...',
+    rememberMe:'Se souvenir de moi', loginBtn:'Connexion', registerBtn:'Créer un compte',
+    hello:'Bonjour', myCoins:'Mes Pièces', launch:'LANCER LA MISSION',
+    endless:'♾️ Mode Infini', leaderboard:'🏆 Classement', stats:'📊 Statistiques',
+    shop:'⭐ Boutique', logout:'🚪 Déconnexion',
+    moveShip:'Déplacer le vaisseau', shoot:'Tirer', shield:'Bouclier rotatif', dash:'Dash rapide',
+    yellow:'Jaune', collectPts:'Collectez pour des points!', pink:'Rose', avoidPts:'Évitez! Perd des points',
+    score:'SCORE', stage:'ÉTAPE', shields:'BOUCLIER', lives:'VIES', coins:'⭐ PIÈCES',
+    menu:'Menu', skipUpgrade:'Passer → Étape suivante', lang:'Langue',
+    errShortUser:'⚠ Au moins 2 caractères requis', errShortPass:'⚠ Au moins 3 caractères requis',
+    errUserExists:'⚠ Nom déjà utilisé', errNoUser:'⚠ Utilisateur introuvable',
+    errWrongPass:'⚠ Mot de passe incorrect', backToMenu:'← Retour au menu', chooseUpgrade:'CHOISIR UNE AMÉLIORATION',
+    stageComplete:'TERMINÉ!', maxed:'Maximum', needCoins:'Manque {n} ⭐', you:'Vous', noPlayers:'Aucun joueur', rarity_common:'Commun', rarity_uncommon:'Peu commun', rarity_rare:'Rare', rarity_epic:'Épique',
+  },
+  es: {
+    login:'Iniciar sesión', register:'Crear cuenta', username:'Usuario', password:'Contraseña',
+    usernamePh:'Ingresa usuario...', passwordPh:'Ingresa contraseña...',
+    rememberMe:'Recordarme en este dispositivo', loginBtn:'Entrar', registerBtn:'Crear cuenta',
+    hello:'Hola', myCoins:'Mis Monedas', launch:'INICIAR MISIÓN',
+    endless:'♾️ Modo Infinito', leaderboard:'🏆 Clasificación', stats:'📊 Estadísticas',
+    shop:'⭐ Tienda', logout:'🚪 Salir',
+    moveShip:'Mover nave', shoot:'Disparar', shield:'Escudo giratorio', dash:'Dash rápido',
+    yellow:'Amarillo', collectPts:'¡Recolecta puntos!', pink:'Rosa', avoidPts:'¡Evita! Resta puntos',
+    score:'PUNTOS', stage:'ETAPA', shields:'ESCUDO', lives:'VIDAS', coins:'⭐ MONEDAS',
+    menu:'Menú', skipUpgrade:'Saltar → Siguiente etapa', lang:'Idioma',
+    errShortUser:'⚠ Mínimo 2 caracteres', errShortPass:'⚠ Mínimo 3 caracteres',
+    errUserExists:'⚠ Usuario ya existe', errNoUser:'⚠ Usuario no encontrado',
+    errWrongPass:'⚠ Contraseña incorrecta', backToMenu:'← Volver al menú', chooseUpgrade:'ELEGIR MEJORA',
+    stageComplete:'¡COMPLETO!', maxed:'Máximo', needCoins:'Faltan {n} ⭐', you:'Tú', noPlayers:'Sin jugadores', rarity_common:'Común', rarity_uncommon:'Poco común', rarity_rare:'Raro', rarity_epic:'Épico',
+  },
+  de: {
+    login:'Anmelden', register:'Konto erstellen', username:'Benutzername', password:'Passwort',
+    usernamePh:'Benutzername eingeben...', passwordPh:'Passwort eingeben...',
+    rememberMe:'Auf diesem Gerät merken', loginBtn:'Anmelden', registerBtn:'Konto erstellen',
+    hello:'Hallo', myCoins:'Meine Münzen', launch:'MISSION STARTEN',
+    endless:'♾️ Endlosmodus', leaderboard:'🏆 Rangliste', stats:'📊 Statistiken',
+    shop:'⭐ Shop', logout:'🚪 Abmelden',
+    moveShip:'Schiff bewegen', shoot:'Schießen', shield:'Rotierender Schild', dash:'Schneller Dash',
+    yellow:'Gelb', collectPts:'Sammeln für Punkte!', pink:'Pink', avoidPts:'Vermeiden! Verliert Punkte',
+    score:'PUNKTE', stage:'STUFE', shields:'SCHILD', lives:'LEBEN', coins:'⭐ MÜNZEN',
+    menu:'Menü', skipUpgrade:'Überspringen → Nächste Stufe', lang:'Sprache',
+    errShortUser:'⚠ Mindestens 2 Zeichen', errShortPass:'⚠ Mindestens 3 Zeichen',
+    errUserExists:'⚠ Benutzername existiert bereits', errNoUser:'⚠ Benutzer nicht gefunden',
+    errWrongPass:'⚠ Falsches Passwort', backToMenu:'← Zurück zum Menü', chooseUpgrade:'VERBESSERUNG WÄHLEN',
+    stageComplete:'ABGESCHLOSSEN!', maxed:'Maximum', needCoins:'Fehlen {n} ⭐', you:'Du', noPlayers:'Keine Spieler', rarity_common:'Häufig', rarity_uncommon:'Ungewöhnlich', rarity_rare:'Selten', rarity_epic:'Episch',
+  },
+  ru: {
+    login:'Войти', register:'Создать аккаунт', username:'Имя пользователя', password:'Пароль',
+    usernamePh:'Введите имя...', passwordPh:'Введите пароль...',
+    rememberMe:'Запомнить меня', loginBtn:'Войти', registerBtn:'Создать аккаунт',
+    hello:'Привет', myCoins:'Мои монеты', launch:'НАЧАТЬ МИССИЮ',
+    endless:'♾️ Бесконечный режим', leaderboard:'🏆 Рейтинг', stats:'📊 Статистика',
+    shop:'⭐ Магазин', logout:'🚪 Выйти',
+    moveShip:'Управление кораблём', shoot:'Стрелять', shield:'Вращающийся щит', dash:'Быстрый рывок',
+    yellow:'Жёлтый', collectPts:'Собирай очки!', pink:'Розовый', avoidPts:'Избегай! Теряешь очки',
+    score:'ОЧКИ', stage:'УРОВЕНЬ', shields:'ЩИТ', lives:'ЖИЗНИ', coins:'⭐ МОНЕТЫ',
+    menu:'Меню', skipUpgrade:'Пропустить → Следующий уровень', lang:'Язык',
+    errShortUser:'⚠ Минимум 2 символа', errShortPass:'⚠ Минимум 3 символа',
+    errUserExists:'⚠ Имя уже занято', errNoUser:'⚠ Пользователь не найден',
+    errWrongPass:'⚠ Неверный пароль', backToMenu:'← В меню', chooseUpgrade:'ВЫБЕРИ УЛУЧШЕНИЕ',
+    stageComplete:'ПРОЙДЕН!', maxed:'Максимум', needCoins:'Нужно ещё {n} ⭐', you:'Вы', noPlayers:'Нет игроков', rarity_common:'Обычный', rarity_uncommon:'Необычный', rarity_rare:'Редкий', rarity_epic:'Эпический',
+  },
+  zh: {
+    login:'登录', register:'创建账户', username:'用户名', password:'密码',
+    usernamePh:'输入用户名...', passwordPh:'输入密码...',
+    rememberMe:'在此设备上记住我', loginBtn:'登录', registerBtn:'创建账户',
+    hello:'你好', myCoins:'我的金币', launch:'开始任务',
+    endless:'♾️ 无尽模式', leaderboard:'🏆 排行榜', stats:'📊 统计',
+    shop:'⭐ 升级商店', logout:'🚪 退出',
+    moveShip:'移动飞船', shoot:'射击', shield:'旋转护盾', dash:'快速冲刺',
+    yellow:'黄色', collectPts:'收集得分!', pink:'粉色', avoidPts:'避开! 扣分',
+    score:'分数', stage:'关卡', shields:'护盾', lives:'生命', coins:'⭐ 金币',
+    menu:'菜单', skipUpgrade:'跳过 → 下一关', lang:'语言',
+    errShortUser:'⚠ 至少需要2个字符', errShortPass:'⚠ 至少需要3个字符',
+    errUserExists:'⚠ 用户名已存在', errNoUser:'⚠ 用户不存在',
+    errWrongPass:'⚠ 密码错误', backToMenu:'← 返回菜单', chooseUpgrade:'选择升级',
+    stageComplete:'完成!', maxed:'已满级', needCoins:'还需{n} ⭐', you:'你', noPlayers:'暂无玩家', rarity_common:'普通', rarity_uncommon:'非凡', rarity_rare:'稀有', rarity_epic:'史诗',
+  },
+  ja: {
+    login:'ログイン', register:'アカウント作成', username:'ユーザー名', password:'パスワード',
+    usernamePh:'ユーザー名を入力...', passwordPh:'パスワードを入力...',
+    rememberMe:'このデバイスで記憶する', loginBtn:'ログイン', registerBtn:'アカウント作成',
+    hello:'こんにちは', myCoins:'コイン', launch:'ミッション開始',
+    endless:'♾️ エンドレスモード', leaderboard:'🏆 ランキング', stats:'📊 統計',
+    shop:'⭐ アップグレード', logout:'🚪 ログアウト',
+    moveShip:'艦を動かす', shoot:'射撃', shield:'回転シールド', dash:'クイックダッシュ',
+    yellow:'黄色', collectPts:'集めてポイント!', pink:'ピンク', avoidPts:'避けて! ポイント減',
+    score:'スコア', stage:'ステージ', shields:'シールド', lives:'ライフ', coins:'⭐ コイン',
+    menu:'メニュー', skipUpgrade:'スキップ → 次のステージ', lang:'言語',
+    errShortUser:'⚠ 2文字以上必要', errShortPass:'⚠ 3文字以上必要',
+    errUserExists:'⚠ ユーザー名が存在します', errNoUser:'⚠ ユーザーが見つかりません',
+    errWrongPass:'⚠ パスワードが違います', backToMenu:'← メニューに戻る', chooseUpgrade:'アップグレード選択',
+    stageComplete:'クリア!', maxed:'最大', needCoins:'あと{n} ⭐ 必要', you:'あなた', noPlayers:'プレイヤーなし', rarity_common:'コモン', rarity_uncommon:'アンコモン', rarity_rare:'レア', rarity_epic:'エピック',
+  },
+  ko: {
+    login:'로그인', register:'계정 만들기', username:'사용자 이름', password:'비밀번호',
+    usernamePh:'사용자 이름 입력...', passwordPh:'비밀번호 입력...',
+    rememberMe:'이 기기에서 기억하기', loginBtn:'로그인', registerBtn:'계정 만들기',
+    hello:'안녕하세요', myCoins:'내 코인', launch:'임무 시작',
+    endless:'♾️ 무한 모드', leaderboard:'🏆 순위표', stats:'📊 통계',
+    shop:'⭐ 업그레이드 상점', logout:'🚪 로그아웃',
+    moveShip:'우주선 이동', shoot:'발사', shield:'회전 방패', dash:'빠른 대시',
+    yellow:'노란색', collectPts:'수집해 점수 획득!', pink:'분홍색', avoidPts:'피해! 점수 감소',
+    score:'점수', stage:'스테이지', shields:'방패', lives:'생명', coins:'⭐ 코인',
+    menu:'메뉴', skipUpgrade:'건너뛰기 → 다음 스테이지', lang:'언어',
+    errShortUser:'⚠ 최소 2자 필요', errShortPass:'⚠ 최소 3자 필요',
+    errUserExists:'⚠ 이미 존재하는 이름', errNoUser:'⚠ 사용자 없음',
+    errWrongPass:'⚠ 비밀번호 오류', backToMenu:'← 메뉴로 돌아가기', chooseUpgrade:'업그레이드 선택',
+    stageComplete:'완료!', maxed:'최대', needCoins:'{n} ⭐ 더 필요', you:'당신', noPlayers:'플레이어 없음', rarity_common:'일반', rarity_uncommon:'희귀하지않은', rarity_rare:'희귀', rarity_epic:'에픽',
+  },
+  pt: {
+    login:'Entrar', register:'Criar conta', username:'Usuário', password:'Senha',
+    usernamePh:'Digite o usuário...', passwordPh:'Digite a senha...',
+    rememberMe:'Lembrar neste dispositivo', loginBtn:'Entrar', registerBtn:'Criar conta',
+    hello:'Olá', myCoins:'Minhas Moedas', launch:'INICIAR MISSÃO',
+    endless:'♾️ Modo Infinito', leaderboard:'🏆 Classificação', stats:'📊 Estatísticas',
+    shop:'⭐ Loja', logout:'🚪 Sair',
+    moveShip:'Mover nave', shoot:'Atirar', shield:'Escudo giratório', dash:'Dash rápido',
+    yellow:'Amarelo', collectPts:'Colete pontos!', pink:'Rosa', avoidPts:'Evite! Perde pontos',
+    score:'PONTOS', stage:'FASE', shields:'ESCUDO', lives:'VIDAS', coins:'⭐ MOEDAS',
+    menu:'Menu', skipUpgrade:'Pular → Próxima fase', lang:'Idioma',
+    errShortUser:'⚠ Mínimo 2 caracteres', errShortPass:'⚠ Mínimo 3 caracteres',
+    errUserExists:'⚠ Usuário já existe', errNoUser:'⚠ Usuário não encontrado',
+    errWrongPass:'⚠ Senha incorreta', backToMenu:'← Voltar ao menu', chooseUpgrade:'ESCOLHER MELHORIA',
+    stageComplete:'COMPLETO!', maxed:'Máximo', needCoins:'Faltam {n} ⭐', you:'Você', noPlayers:'Sem jogadores', rarity_common:'Comum', rarity_uncommon:'Incomum', rarity_rare:'Raro', rarity_epic:'Épico',
+  },
+  it: {
+    login:'Accedi', register:'Crea account', username:'Nome utente', password:'Password',
+    usernamePh:'Inserisci nome...', passwordPh:'Inserisci password...',
+    rememberMe:'Ricordami su questo dispositivo', loginBtn:'Accedi', registerBtn:'Crea account',
+    hello:'Ciao', myCoins:'Le mie Monete', launch:'AVVIA MISSIONE',
+    endless:'♾️ Modalità Infinita', leaderboard:'🏆 Classifica', stats:'📊 Statistiche',
+    shop:'⭐ Negozio', logout:'🚪 Esci',
+    moveShip:'Muovi nave', shoot:'Spara', shield:'Scudo rotante', dash:'Dash veloce',
+    yellow:'Giallo', collectPts:'Raccogli punti!', pink:'Rosa', avoidPts:'Evita! Toglie punti',
+    score:'PUNTEGGIO', stage:'LIVELLO', shields:'SCUDO', lives:'VITE', coins:'⭐ MONETE',
+    menu:'Menu', skipUpgrade:'Salta → Prossimo livello', lang:'Lingua',
+    errShortUser:'⚠ Minimo 2 caratteri', errShortPass:'⚠ Minimo 3 caratteri',
+    errUserExists:'⚠ Nome già in uso', errNoUser:'⚠ Utente non trovato',
+    errWrongPass:'⚠ Password errata', backToMenu:'← Torna al menu', chooseUpgrade:'SCEGLI MIGLIORAMENTO',
+    stageComplete:'COMPLETATO!', maxed:'Massimo', needCoins:'Mancano {n} ⭐', you:'Tu', noPlayers:'Nessun giocatore', rarity_common:'Comune', rarity_uncommon:'Non comune', rarity_rare:'Raro', rarity_epic:'Epico',
+  },
+  tr: {
+    login:'Giriş', register:'Hesap Oluştur', username:'Kullanıcı adı', password:'Şifre',
+    usernamePh:'Kullanıcı adı girin...', passwordPh:'Şifre girin...',
+    rememberMe:'Bu cihazda hatırla', loginBtn:'Giriş Yap', registerBtn:'Hesap Oluştur',
+    hello:'Merhaba', myCoins:'Paralarım', launch:'MİSYONU BAŞLAT',
+    endless:'♾️ Sonsuz Mod', leaderboard:'🏆 Sıralama', stats:'📊 İstatistikler',
+    shop:'⭐ Yükseltme Mağazası', logout:'🚪 Çıkış',
+    moveShip:'Gemiyi hareket ettir', shoot:'Ateş et', shield:'Dönen kalkan', dash:'Hızlı koşu',
+    yellow:'Sarı', collectPts:'Topla puan kazan!', pink:'Pembe', avoidPts:'Kaçın! Puan kaybeder',
+    score:'PUAN', stage:'SEVIYE', shields:'KALKAN', lives:'CANLAR', coins:'⭐ PARALAR',
+    menu:'Menü', skipUpgrade:'Atla → Sonraki seviye', lang:'Dil',
+    errShortUser:'⚠ En az 2 karakter gerekli', errShortPass:'⚠ En az 3 karakter gerekli',
+    errUserExists:'⚠ Kullanıcı adı mevcut', errNoUser:'⚠ Kullanıcı bulunamadı',
+    errWrongPass:'⚠ Yanlış şifre', backToMenu:'← Menüye dön', chooseUpgrade:'YÜKSELTMEYİ SEÇ',
+    stageComplete:'TAMAMLANDI!', maxed:'Maksimum', needCoins:'{n} ⭐ daha lazım', you:'Sen', noPlayers:'Oyuncu yok', rarity_common:'Yaygın', rarity_uncommon:'Yaygın olmayan', rarity_rare:'Nadir', rarity_epic:'Efsanevi',
+  },
+  hi: {
+    login:'लॉग इन', register:'खाता बनाएं', username:'उपयोगकर्ता नाम', password:'पासवर्ड',
+    usernamePh:'नाम दर्ज करें...', passwordPh:'पासवर्ड दर्ज करें...',
+    rememberMe:'इस डिवाइस पर याद रखें', loginBtn:'लॉग इन', registerBtn:'खाता बनाएं',
+    hello:'नमस्ते', myCoins:'मेरे सिक्के', launch:'मिशन शुरू करें',
+    endless:'♾️ अनंत मोड', leaderboard:'🏆 लीडरबोर्ड', stats:'📊 आँकड़े',
+    shop:'⭐ अपग्रेड शॉप', logout:'🚪 लॉग आउट',
+    moveShip:'जहाज चलाएं', shoot:'गोली चलाएं', shield:'घूमती ढाल', dash:'तेज़ दौड़',
+    yellow:'पीला', collectPts:'इकट्ठा करें अंक!', pink:'गुलाबी', avoidPts:'बचें! अंक कम होंगे',
+    score:'स्कोर', stage:'चरण', shields:'ढाल', lives:'जीवन', coins:'⭐ सिक्के',
+    menu:'मेनू', skipUpgrade:'छोड़ें → अगला चरण', lang:'भाषा',
+    errShortUser:'⚠ कम से कम 2 अक्षर चाहिए', errShortPass:'⚠ कम से कम 3 अक्षर चाहिए',
+    errUserExists:'⚠ नाम पहले से मौजूद है', errNoUser:'⚠ उपयोगकर्ता नहीं मिला',
+    errWrongPass:'⚠ गलत पासवर्ड', backToMenu:'← मेनू पर वापस', chooseUpgrade:'अपग्रेड चुनें',
+    stageComplete:'पूर्ण!', maxed:'अधिकतम', needCoins:'{n} ⭐ और चाहिए', you:'आप', noPlayers:'कोई खिलाड़ी नहीं', rarity_common:'सामान्य', rarity_uncommon:'असामान्य', rarity_rare:'दुर्लभ', rarity_epic:'महाकाव्य',
+  },
+  pl: {
+    login:'Logowanie', register:'Utwórz konto', username:'Nazwa użytkownika', password:'Hasło',
+    usernamePh:'Podaj nazwę...', passwordPh:'Podaj hasło...',
+    rememberMe:'Zapamiętaj mnie na tym urządzeniu', loginBtn:'Zaloguj', registerBtn:'Utwórz konto',
+    hello:'Cześć', myCoins:'Moje Monety', launch:'ROZPOCZNIJ MISJĘ',
+    endless:'♾️ Tryb Nieskończony', leaderboard:'🏆 Ranking', stats:'📊 Statystyki',
+    shop:'⭐ Sklep', logout:'🚪 Wyloguj',
+    moveShip:'Porusz statkiem', shoot:'Strzelaj', shield:'Obracająca tarcza', dash:'Szybki dash',
+    yellow:'Żółty', collectPts:'Zbieraj punkty!', pink:'Różowy', avoidPts:'Unikaj! Traci punkty',
+    score:'WYNIK', stage:'POZIOM', shields:'TARCZA', lives:'ŻYCIA', coins:'⭐ MONETY',
+    menu:'Menu', skipUpgrade:'Pomiń → Następny poziom', lang:'Język',
+    errShortUser:'⚠ Minimum 2 znaki', errShortPass:'⚠ Minimum 3 znaki',
+    errUserExists:'⚠ Nazwa już istnieje', errNoUser:'⚠ Użytkownik nie znaleziony',
+    errWrongPass:'⚠ Błędne hasło', backToMenu:'← Powrót do menu', chooseUpgrade:'WYBIERZ ULEPSZENIE',
+    stageComplete:'UKOŃCZONO!', maxed:'Maksimum', needCoins:'Brak {n} ⭐', you:'Ty', noPlayers:'Brak graczy', rarity_common:'Pospolity', rarity_uncommon:'Niepospolity', rarity_rare:'Rzadki', rarity_epic:'Epicki',
+  },
+};
+
+let currentLang = localStorage.getItem(LANG_KEY) || 'he';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS['en'][key] || key;
+}
+
+function applyLanguage() {
+  const lang = LANGUAGES.find(l=>l.code===currentLang);
+  document.body.style.direction = lang?.dir || 'ltr';
+
+  // Update all lang button labels
+  ['lang-label','global-lang-label'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=t('lang');
+  });
+
+  // The in-game HUD lang button only shows during gameplay
+  const hudLangBtn = document.getElementById('lang-btn');
+  if(hudLangBtn) hudLangBtn.style.display = gameState==='playing' ? 'flex' : 'none';
+
+  // Translate all data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+
+  // Translate placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    el.placeholder = t(key);
+  });
+
+  // Update auth submit button
+  const submitBtn = document.getElementById('auth-submit-btn');
+  if(submitBtn) submitBtn.textContent = activeTab==='login' ? t('loginBtn') : t('registerBtn');
+
+  // Update static coin label that has ⭐ prefix
+  const coinLbl = document.querySelector('#coin-display')?.previousElementSibling;
+  // already handled by data-i18n
+}
+
+function toggleLangMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('lang-menu');
+  if(menu.style.display === 'block') { menu.style.display='none'; return; }
+
+  menu.innerHTML = LANGUAGES.map(l => `
+    <div onclick="selectLang('${l.code}')" style="
+      display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+      border-radius:8px;transition:background 0.15s;
+      background:${l.code===currentLang?'rgba(0,245,255,0.12)':'transparent'};
+      border-left:${l.code===currentLang?'2px solid #00f5ff':'2px solid transparent'};
+    " onmouseover="this.style.background='rgba(0,245,255,0.08)'"
+       onmouseout="this.style.background='${l.code===currentLang?'rgba(0,245,255,0.12)':'transparent'}'">
+      <span style="font-size:20px">${l.flag}</span>
+      <span style="font-family:'Exo 2',sans-serif;font-size:13px;color:#fff">${l.name}</span>
+      ${l.code===currentLang?'<span style="margin-left:auto;color:#00f5ff;font-size:12px">✓</span>':''}
+    </div>
+  `).join('');
+  menu.style.display = 'block';
+}
+
+function selectLang(code) {
+  currentLang = code;
+  localStorage.setItem(LANG_KEY, code);
+  document.getElementById('lang-menu').style.display = 'none';
+  applyLanguage();
+  // Re-render shop if open
+  if(document.getElementById('shop-screen')?.classList.contains('active')) showShop();
+}
+
+// Close lang menu on outside click
+document.addEventListener('click', () => {
+  const m = document.getElementById('lang-menu');
+  if(m) m.style.display='none';
+});
+
+// ========== END i18n SYSTEM ==========
+
+// ========== AUTH & LEADERBOARD SYSTEM ==========
+const DB_KEY = 'cosmicmayhem_db';
+const SESSION_KEY = 'cosmicmayhem_session';
+const REMEMBER_KEY = 'cosmicmayhem_remember';
+
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || { users: {} }; } catch(e) { return { users: {} }; }
+}
+function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+function hashPass(s) {
+  // simple non-crypto hash (demo purposes)
+  let h = 0;
+  for(let i=0;i<s.length;i++) h = Math.imul(31,h)+s.charCodeAt(i)|0;
+  return h.toString(36);
+}
+
+let currentUser = null;
+let rememberMe = false;
+let activeTab = 'login';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('auth-submit-btn').textContent = tab==='login' ? t('loginBtn') : t('registerBtn');
+  document.getElementById('auth-error').textContent = '';
+}
+
+function toggleRemember() {
+  rememberMe = !rememberMe;
+  document.getElementById('remember-check').classList.toggle('checked', rememberMe);
+}
+
+function submitAuth() {
+  const username = document.getElementById('auth-username').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+
+  if(!username || username.length < 2) { errEl.textContent = t('errShortUser'); return; }
+  if(!password || password.length < 3) { errEl.textContent = t('errShortPass'); return; }
+
+  const db = loadDB();
+  const hash = hashPass(password);
+
+  if(activeTab === 'register') {
+    if(db.users[username]) { errEl.textContent = t('errUserExists'); return; }
+    db.users[username] = { hash, bestScore: 0, bestWave: 0, created: Date.now() };
+    saveDB(db);
+    currentUser = username;
+    if(rememberMe) localStorage.setItem(REMEMBER_KEY, JSON.stringify({username, hash}));
+    showMenu();
+  } else {
+    if(!db.users[username]) { errEl.textContent = t('errNoUser'); return; }
+    if(db.users[username].hash !== hash) { errEl.textContent = t('errWrongPass'); return; }
+    currentUser = username;
+    if(rememberMe) localStorage.setItem(REMEMBER_KEY, JSON.stringify({username, hash}));
+    else localStorage.removeItem(REMEMBER_KEY);
+    showMenu();
+  }
+}
+
+document.getElementById('auth-username').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('auth-password').focus(); });
+document.getElementById('auth-password').addEventListener('keydown', e => { if(e.key==='Enter') submitAuth(); });
+
+function logout() {
+  localStorage.removeItem(REMEMBER_KEY);
+  currentUser = null;
+  document.getElementById('auth-username').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('score-final').style.display = 'none';
+  showScreen('auth-screen');
+}
+
+function updateBestScore(sc, wv) {
+  if(!currentUser) return;
+  const db = loadDB();
+  const u = db.users[currentUser];
+  if(!u) return;
+  let updated = false;
+  if(sc > (u.bestScore||0)) { u.bestScore = sc; updated = true; }
+  if(wv > (u.bestWave||0)) { u.bestWave = wv; updated = true; }
+  if(updated) saveDB(db);
+}
+
+// ========== BOSS RUSH & JOURNAL SYSTEM ==========
+
+// Boss definitions for Boss Rush
+const BOSS_DEFS = [
+  { id:'crimson',   name:'Crimson Destroyer', icon:'🔴', color:'#ff006e', rank:'I',   hp:120, speed:1.5, shootRate:60, size:55, score:200 },
+  { id:'azure',     name:'Azure Phantom',     icon:'🔵', color:'#00f5ff', rank:'II',  hp:160, speed:2.0, shootRate:50, size:58, score:300 },
+  { id:'void',      name:'Void Reaper',       icon:'🟣', color:'#a855f7', rank:'III', hp:220, speed:1.8, shootRate:45, size:62, score:450 },
+  { id:'solar',     name:'Solar Tyrant',      icon:'🟡', color:'#ffbe0b', rank:'IV',  hp:300, speed:2.2, shootRate:40, size:66, score:650 },
+  { id:'inferno',   name:'Inferno Lord',      icon:'🟠', color:'#f97316', rank:'V',   hp:400, speed:2.5, shootRate:35, size:70, score:900 },
+  { id:'omega',     name:'Omega Dreadnought', icon:'⚫', color:'#ffffff', rank:'VI',  hp:600, speed:3.0, shootRate:28, size:75, score:1500 },
+];
+
+let bossRushActive = false;
+let bossRushIndex = 0;   // current boss index
+let bossRushScore = 0;
+let bossRushStartTime = 0;
+let bossRushDefeated = []; // ids of defeated bosses this run
+
+// ——— JOURNAL ———
+// Each entry: { type:'boss_normal'|'boss_rush'|'endless', bossId, bossName, bossIcon, result:'win'|'loss', score, wave, date, mode, duration }
+function getJournal() {
+  if(!currentUser) return [];
+  try { return JSON.parse(localStorage.getItem(`journal_${currentUser}`)) || []; } catch(e) { return []; }
+}
+function saveJournalEntry(entry) {
+  if(!currentUser) return;
+  const j = getJournal();
+  j.unshift({ ...entry, date: Date.now() });
+  if(j.length > 200) j.pop(); // keep last 200
+  localStorage.setItem(`journal_${currentUser}`, JSON.stringify(j));
+}
+
+// ——— JOURNAL UI ———
+let journalFilter = 'all';
+function filterJournal(type) {
+  journalFilter = type;
+  document.querySelectorAll('.j-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('jtab-'+type)?.classList.add('active');
+  renderJournal();
+}
+
+function showJournal() {
+  journalFilter = 'all';
+  document.querySelectorAll('.j-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('jtab-all')?.classList.add('active');
+  renderJournal();
+  showScreen('journal-screen');
+}
+
+function renderJournal() {
+  const entries = getJournal().filter(e => journalFilter==='all' || e.type===journalFilter);
+  const timeline = document.getElementById('journal-timeline');
+  const total = getJournal().length;
+  document.getElementById('journal-total').textContent = `${total} רשומות`;
+
+  if(entries.length === 0) {
+    timeline.innerHTML = `<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,0.25);font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px">
+      <div style="font-size:48px;margin-bottom:16px">📜</div>
+      אין רשומות עדיין<br><span style="font-size:10px;opacity:0.6">צא למשחק ובוא להביס בוסים!</span>
+    </div>`;
+    return;
+  }
+
+  const modeLabels = { boss_normal:'מצב רגיל', boss_rush:'Boss Rush', endless:'Endless' };
+  const modeIcons  = { boss_normal:'⚔️', boss_rush:'💀', endless:'♾️' };
+
+  timeline.innerHTML = entries.map((e,i) => {
+    const date = new Date(e.date);
+    const dateStr = `${date.toLocaleDateString('he-IL')} ${date.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`;
+    const duration = e.duration ? `${Math.floor(e.duration/60)}:${String(e.duration%60).padStart(2,'0')}` : '—';
+    const entryClass = e.type==='boss_rush' ? 'rush' : (e.result==='win'?'win':'loss');
+
+    return `<div class="j-entry ${entryClass}">
+      <div class="j-boss-icon">${e.bossIcon || modeIcons[e.type]}</div>
+      <div class="j-info">
+        <div class="j-boss-name">${escHtml(e.bossName || 'Unknown Boss')}</div>
+        <div class="j-meta">
+          ${e.wave ? `שלב ${e.wave} • ` : ''}זמן: ${duration}
+        </div>
+        <div class="j-tags">
+          <span class="j-tag ${e.result==='win'?'win':'loss'}">${e.result==='win'?'✓ נצחון':'✗ הפסד'}</span>
+          <span class="j-tag mode">${modeIcons[e.type]} ${modeLabels[e.type]}</span>
+          <span class="j-tag score">⭐ ${(e.score||0).toLocaleString()} נק׳</span>
+        </div>
+      </div>
+      <div class="j-right">
+        <div class="j-date">${dateStr}</div>
+        <div class="j-score-big">${(e.score||0).toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ——— BOSS RUSH SELECT ———
+function showBossRushSelect() {
+  const journal = getJournal().filter(e=>e.type==='boss_rush' && e.result==='win');
+  const beatenIds = new Set(journal.map(e=>e.bossId));
+
+  // Get best scores per boss
+  const bestScores = {};
+  getJournal().filter(e=>e.bossId).forEach(e=>{
+    if(!bestScores[e.bossId] || e.score > bestScores[e.bossId]) bestScores[e.bossId]=e.score;
+  });
+
+  const grid = document.getElementById('br-boss-grid');
+  grid.innerHTML = BOSS_DEFS.map((b,i) => {
+    const beaten = beatenIds.has(b.id);
+    const best = bestScores[b.id];
+    return `<div class="br-card ${beaten?'beaten':''}">
+      <div class="br-card-badge">${beaten?'🏅':''}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:${b.color};letter-spacing:2px;margin-bottom:6px">RANK ${b.rank}</div>
+      <div class="br-card-icon">${b.icon}</div>
+      <div class="br-card-name">${b.name}</div>
+      <div class="br-card-rank" style="color:${b.color}">HP: ${b.hp * (1 + i*0.3)|0}</div>
+      ${best ? `<div class="br-card-best">שיא: ${best.toLocaleString()}</div>` : '<div class="br-card-best" style="opacity:0.3">לא הובס</div>'}
+    </div>`;
+  }).join('');
+
+  showScreen('bossrush-screen');
+}
+
+function startBossRush() { showBossRushSelect(); }
+
+function launchBossRush() {
+  bossRushActive = true;
+  bossRushIndex = 0;
+  bossRushScore = 0;
+  bossRushDefeated = [];
+  bossRushStartTime = Date.now();
+  gameMode = 'boss_rush';
+
+  // Start clean game
+  score = 0; lives = 3 + (shopPurchased['extra_life']?1:0);
+  wave = 1; health = maxHealth = 100 + upgrades.maxHealth*25;
+  combo = 0; specialCharge = shopPurchased['start_bombs'] ? 60 : 0;
+  bossActive = false; boss = null;
+  bullets=[]; enemies=[]; enemyBullets=[]; particles=[]; powerups=[]; explosions=[]; orbs=[]; mines=[];
+  orbSpawnTimer=0; screenFlashTimer=0;
+  shieldActive=false; shieldCooldown=0; dashCooldown=0; dashActive=false;
+  slowMoActive=false; slowMoTimer=0;
+  novaCount=0; bossKillCount=0; waveNoDamage=true;
+  totalKills=0; totalOrbsCollected=0;
+  activePowerups={};
+  player.x=W/2; player.y=H*0.8;
+  player.invincible=0; player.trail=[];
+  document.getElementById('score-display').textContent='0';
+  document.getElementById('health-bar').style.width='100%';
+  document.getElementById('special-bar').style.width=specialCharge+'%';
+  document.getElementById('score-final').style.display='none';
+  updateLivesDisplay(); updatePowerupDisplay(); updateCoinDisplays();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  gameState='playing';
+
+  // Spawn first boss immediately
+  spawnBossRushBoss();
+}
+
+function spawnBossRushBoss() {
+  if(bossRushIndex >= BOSS_DEFS.length) { endBossRush(true); return; }
+  const def = BOSS_DEFS[bossRushIndex];
+  const diff = 1 + bossRushIndex * 0.35;
+  bossActive = true;
+  boss = {
+    x:W/2, y:-80, vx:1.5+bossRushIndex*0.2, vy:0.4,
+    hp: Math.floor(def.hp * diff), maxHp: Math.floor(def.hp * diff),
+    phase:1, angle:0, shootTimer:0, shootPattern:0,
+    size: def.size, color: def.color,
+    score: Math.floor(def.score * diff),
+    state:'entering', enterY:120,
+    rushId: def.id, rushName: def.name, rushIcon: def.icon,
+    shootRate: Math.max(20, def.shootRate - bossRushIndex*3),
+  };
+
+  // Flash announce
+  const wa = document.getElementById('wave-announce');
+  wa.textContent = `💀 ${def.name}`;
+  wa.style.color = def.color;
+  wa.style.textShadow = `0 0 40px ${def.color}, 0 0 80px ${def.color}44`;
+  wa.style.opacity='1';
+  setTimeout(()=>wa.style.opacity='0', 2500);
+  document.getElementById('wave-display').textContent = `${bossRushIndex+1}/${BOSS_DEFS.length}`;
+}
+
+function endBossRush(victory) {
+  bossRushActive = false;
+  const duration = Math.floor((Date.now()-bossRushStartTime)/1000);
+  const totalScore = score;
+
+  // Save journal entries for all defeated bosses
+  bossRushDefeated.forEach(b=>{
+    saveJournalEntry({ type:'boss_rush', bossId:b.id, bossName:b.name, bossIcon:b.icon,
+      result:'win', score:b.score, wave:b.index+1, duration, mode:'boss_rush' });
+  });
+  if(!victory) {
+    const failed = BOSS_DEFS[bossRushIndex];
+    saveJournalEntry({ type:'boss_rush', bossId:failed?.id, bossName:failed?.name, bossIcon:failed?.icon,
+      result:'loss', score:totalScore, wave:bossRushIndex+1, duration, mode:'boss_rush' });
+  }
+
+  updateBestScore(totalScore, bossRushIndex+1);
+  addCoins(Math.floor(totalScore/10));
+
+  // Show result
+  gameState='menu'; gameMode='normal';
+  const rs = document.getElementById('br-result-screen');
+  document.getElementById('br-result-title').innerHTML = victory
+    ? `<span style="background:linear-gradient(135deg,#ffbe0b,#ff8800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">🏆 VICTORY!</span>`
+    : `<span style="color:#ff006e">💀 DEFEATED</span>`;
+  document.getElementById('br-result-sub').textContent = victory
+    ? `כל ${BOSS_DEFS.length} הבוסים הובסו!`
+    : `נפלת מול ${BOSS_DEFS[bossRushIndex]?.name || 'Boss'} (#${bossRushIndex+1})`;
+  document.getElementById('br-result-stats').innerHTML = `
+    <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+      ${[
+        ['⚔️','בוסים הובסו',bossRushDefeated.length+'/'+BOSS_DEFS.length],
+        ['⭐','ניקוד',totalScore.toLocaleString()],
+        ['⏱️','זמן',`${Math.floor(duration/60)}:${String(duration%60).padStart(2,'0')}`],
+        ['💰','מטבעות','+'+Math.floor(totalScore/10)],
+      ].map(([icon,label,val])=>`
+        <div style="background:rgba(0,5,25,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px 24px;text-align:center">
+          <div style="font-size:28px">${icon}</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:20px;font-weight:900;color:#fff;margin:6px 0">${val}</div>
+          <div style="font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(255,255,255,0.4)">${label}</div>
+        </div>
+      `).join('')}
+    </div>`;
+  showScreen('br-result-screen');
+}
+
+// ========== END BOSS RUSH & JOURNAL ==========
+
+
+
+// Coin state (in-session coins earned this game, persisted to DB)
+let sessionCoins = 0; // coins earned this game session
+let shopPurchased = {}; // { itemId: level } - persistent purchases
+
+const SHOP_ITEMS = [
+  { id:'coin_magnet',    icon:'🧲', nameKey:'sh_coin_magnet',    descKey:'sh_coin_magnet_d',    rarity:'common',  cost:[80,180,320],    maxLvl:3 },
+  { id:'extra_life',     icon:'❤️',  nameKey:'sh_extra_life',     descKey:'sh_extra_life_d',     rarity:'uncommon',cost:[150],           maxLvl:1 },
+  { id:'double_coins',   icon:'💰', nameKey:'sh_double_coins',   descKey:'sh_double_coins_d',   rarity:'rare',    cost:[200,500],       maxLvl:2 },
+  { id:'auto_shield',    icon:'🔰', nameKey:'sh_auto_shield',    descKey:'sh_auto_shield_d',    rarity:'uncommon',cost:[120,280],       maxLvl:2 },
+  { id:'piercing_shots', icon:'💎', nameKey:'sh_piercing',       descKey:'sh_piercing_d',       rarity:'rare',    cost:[300,700],       maxLvl:2 },
+  { id:'coin_bonus',     icon:'⭐', nameKey:'sh_coin_bonus',     descKey:'sh_coin_bonus_d',     rarity:'common',  cost:[60,140,260,420],maxLvl:4 },
+  { id:'start_bombs',    icon:'💣', nameKey:'sh_start_bombs',    descKey:'sh_start_bombs_d',    rarity:'uncommon',cost:[180,380],       maxLvl:2 },
+  { id:'health_regen',   icon:'💊', nameKey:'sh_health_regen',   descKey:'sh_health_regen_d',   rarity:'rare',    cost:[250,550,900],   maxLvl:3 },
+  { id:'faster_orbs',    icon:'🌀', nameKey:'sh_faster_orbs',    descKey:'sh_faster_orbs_d',    rarity:'common',  cost:[70,160,290],    maxLvl:3 },
+  { id:'bullet_size',    icon:'🔥', nameKey:'sh_bullet_size',    descKey:'sh_bullet_size_d',    rarity:'uncommon',cost:[130,300,550],   maxLvl:3 },
+  { id:'xp_multiplier',  icon:'✨', nameKey:'sh_xp_mult',        descKey:'sh_xp_mult_d',        rarity:'rare',    cost:[350,800],       maxLvl:2 },
+  { id:'ghost_dash',     icon:'👻', nameKey:'sh_ghost_dash',     descKey:'sh_ghost_dash_d',     rarity:'epic',    cost:[600],           maxLvl:1 },
+  { id:'nova_chain',     icon:'⚡', nameKey:'sh_nova_chain',     descKey:'sh_nova_chain_d',     rarity:'epic',    cost:[700],           maxLvl:1 },
+  { id:'coin_fountain',  icon:'🏦', nameKey:'sh_coin_fountain',  descKey:'sh_coin_fountain_d',  rarity:'uncommon',cost:[160,360,620],   maxLvl:3 },
+  { id:'armor_plating',  icon:'🛡️', nameKey:'sh_armor',          descKey:'sh_armor_d',          rarity:'epic',    cost:[800],           maxLvl:1 },
+];
+
+const RARITY_COLORS = {
+  common:   { border:'rgba(150,200,150,0.35)', glow:'rgba(100,200,100,0.15)', label:'#90ee90', bg:'rgba(50,120,50,0.08)'  },
+  uncommon: { border:'rgba(100,180,255,0.4)',  glow:'rgba(60,140,255,0.12)',  label:'#60b0ff', bg:'rgba(30,80,180,0.08)'  },
+  rare:     { border:'rgba(180,80,255,0.45)',  glow:'rgba(140,40,255,0.15)',  label:'#c060ff', bg:'rgba(100,20,200,0.08)' },
+  epic:     { border:'rgba(255,180,0,0.5)',    glow:'rgba(255,150,0,0.2)',    label:'#ffbe0b', bg:'rgba(180,90,0,0.1)'    },
+};
+
+function rarityName(r) { return t('rarity_'+r); }
+
+function getCoins() {
+  if(!currentUser) return 0;
+  const db = loadDB();
+  return db.users[currentUser]?.coins || 0;
+}
+
+function addCoins(amount) {
+  if(!currentUser) return;
+  const db = loadDB();
+  if(!db.users[currentUser]) return;
+  const mult = shopPurchased['double_coins'] ? (shopPurchased['double_coins']>=2 ? 3 : 2) : 1;
+  const actual = amount * mult;
+  sessionCoins += actual;
+  db.users[currentUser].coins = (db.users[currentUser].coins || 0) + actual;
+  saveDB(db);
+  updateCoinDisplays();
+}
+
+function spendCoins(amount) {
+  if(!currentUser) return false;
+  const db = loadDB();
+  const u = db.users[currentUser];
+  if(!u || (u.coins||0) < amount) return false;
+  u.coins -= amount;
+  saveDB(db);
+  updateCoinDisplays();
+  return true;
+}
+
+function updateCoinDisplays() {
+  const c = getCoins();
+  const fmt = c.toLocaleString();
+  const els = ['coin-display','shop-coin-display','menu-coin-display'];
+  els.forEach(id => { const el=document.getElementById(id); if(el) el.textContent=fmt; });
+}
+
+function loadShopPurchases() {
+  if(!currentUser) return;
+  const db = loadDB();
+  shopPurchased = db.users[currentUser]?.shopItems || {};
+}
+
+function saveShopPurchases() {
+  if(!currentUser) return;
+  const db = loadDB();
+  if(!db.users[currentUser]) return;
+  db.users[currentUser].shopItems = shopPurchased;
+  saveDB(db);
+}
+
+function buyShopItem(itemId) {
+  const item = SHOP_ITEMS.find(i=>i.id===itemId);
+  if(!item) return;
+  const currentLvl = shopPurchased[itemId] || 0;
+  if(currentLvl >= item.maxLvl) return;
+  const cost = item.cost[currentLvl];
+  if(!spendCoins(cost)) {
+    // Shake the coin display
+    const el = document.getElementById('shop-coin-display');
+    if(el) { el.style.color='#ff4040'; setTimeout(()=>el.style.color='#ffbe0b',600); }
+    return;
+  }
+  shopPurchased[itemId] = currentLvl + 1;
+  saveShopPurchases();
+  showShop(); // refresh
+  // Celebrate
+  const grid = document.getElementById('shop-grid');
+  if(grid) {
+    const flash = document.createElement('div');
+    flash.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,190,11,0.06);pointer-events:none;z-index:9999;animation:fadeOut 0.4s forwards';
+    document.body.appendChild(flash);
+    setTimeout(()=>flash.remove(),400);
+  }
+}
+
+function showShop() {
+  loadShopPurchases();
+  updateCoinDisplays();
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML = '';
+
+  SHOP_ITEMS.forEach(item => {
+    const lvl = shopPurchased[item.id] || 0;
+    const maxed = lvl >= item.maxLvl;
+    const cost = maxed ? null : item.cost[lvl];
+    const canAfford = cost !== null && getCoins() >= cost;
+    const rc = RARITY_COLORS[item.rarity];
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+      min-width:200px;max-width:200px;
+      background:${rc.bg};
+      border:1px solid ${maxed?'rgba(255,190,11,0.5)':rc.border};
+      border-radius:14px;padding:20px 16px;
+      display:flex;flex-direction:column;align-items:center;gap:10px;
+      box-shadow:0 0 20px ${rc.glow}${maxed?',0 0 30px rgba(255,190,11,0.15)':''};
+      transition:all 0.25s;cursor:default;flex-shrink:0;
+      position:relative;overflow:hidden;
+    `;
+
+    // Top shimmer for epic
+    if(item.rarity==='epic') {
+      const shimmer = document.createElement('div');
+      shimmer.style.cssText='position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#ffbe0b,transparent);animation:shimmerSlide 2s infinite';
+      card.appendChild(shimmer);
+    }
+
+    // Rarity badge
+    const badge = document.createElement('div');
+    badge.style.cssText=`position:absolute;top:10px;right:10px;font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:1px;color:${rc.label};background:rgba(0,0,0,0.4);padding:2px 7px;border-radius:4px`;
+    badge.textContent = rarityName(item.rarity);
+    card.appendChild(badge);
+
+    // Level stars
+    const stars = document.createElement('div');
+    stars.style.cssText='position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:1px;color:#ffbe0b';
+    stars.textContent = '★'.repeat(lvl)+'☆'.repeat(item.maxLvl-lvl);
+    card.appendChild(stars);
+
+    const icon = document.createElement('div');
+    icon.style.cssText='font-size:44px;margin-top:14px;filter:drop-shadow(0 0 8px rgba(255,255,255,0.3))';
+    icon.textContent = item.icon;
+
+    const name = document.createElement('div');
+    name.style.cssText=`font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#fff;text-align:center;letter-spacing:1px`;
+    name.textContent = t(item.nameKey);
+
+    const desc = document.createElement('div');
+    desc.style.cssText=`font-family:'Exo 2',sans-serif;font-size:11px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.5;flex:1`;
+    desc.textContent = t(item.descKey);
+
+    card.appendChild(icon);
+    card.appendChild(name);
+    card.appendChild(desc);
+
+    if(maxed) {
+      const maxBadge = document.createElement('div');
+      maxBadge.style.cssText=`font-family:'Orbitron',sans-serif;font-size:11px;color:#ffbe0b;letter-spacing:2px;text-align:center;padding:8px;border:1px solid rgba(255,190,11,0.4);border-radius:8px;width:100%;box-sizing:border-box`;
+      maxBadge.textContent='✓ ' + t('maxed');
+      card.appendChild(maxBadge);
+    } else {
+      const btn = document.createElement('button');
+      btn.style.cssText=`font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:2px;padding:10px 0;width:100%;
+        background:${canAfford?`linear-gradient(135deg,rgba(255,190,11,0.2),rgba(255,120,0,0.15))`:'rgba(60,60,60,0.3)'};
+        border:1px solid ${canAfford?'rgba(255,190,11,0.6)':'rgba(100,100,100,0.3)'};
+        color:${canAfford?'#ffbe0b':'rgba(150,150,150,0.6)'};
+        cursor:${canAfford?'pointer':'not-allowed'};border-radius:8px;transition:all 0.2s;
+        display:flex;align-items:center;justify-content:center;gap:6px`;
+      btn.innerHTML = `<span>⭐</span><span>${cost.toLocaleString()}</span>`;
+      if(canAfford) {
+        btn.onmouseover = ()=>{ btn.style.background='rgba(255,190,11,0.25)'; btn.style.boxShadow='0 0 20px rgba(255,190,11,0.3)'; };
+        btn.onmouseout  = ()=>{ btn.style.background='linear-gradient(135deg,rgba(255,190,11,0.2),rgba(255,120,0,0.15))'; btn.style.boxShadow='none'; };
+        btn.onclick = ()=>buyShopItem(item.id);
+      }
+      card.appendChild(btn);
+    }
+
+    if(!maxed && !canAfford) {
+      const need = document.createElement('div');
+      need.style.cssText='font-family:"Exo 2",sans-serif;font-size:10px;color:rgba(255,80,80,0.6);text-align:center';
+      need.textContent = t('needCoins').replace('{n}', (cost-getCoins()).toLocaleString());
+      card.appendChild(need);
+    }
+
+    grid.appendChild(card);
+  });
+
+  showScreen('shop-screen');
+}
+
+// Add shimmer animation
+const shopStyle = document.createElement('style');
+shopStyle.textContent=`
+@keyframes shimmerSlide{0%{background-position:-200% 0}100%{background-position:200% 0}}
+#shop-grid::-webkit-scrollbar{height:6px}
+#shop-grid::-webkit-scrollbar-track{background:rgba(0,5,20,0.5);border-radius:3px}
+#shop-grid::-webkit-scrollbar-thumb{background:rgba(255,190,11,0.35);border-radius:3px}
+#shop-grid::-webkit-scrollbar-thumb:hover{background:rgba(255,190,11,0.6)}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+`;
+document.head.appendChild(shopStyle);
+
+// ========== END SHOP SYSTEM ==========
+
+
+
+// ——— LEADERBOARD ———
+function showLeaderboard() {
+  const db = loadDB();
+  const entries = Object.entries(db.users)
+    .map(([name, data]) => ({ name, score: data.bestScore||0, wave: data.bestWave||0 }))
+    .sort((a,b) => b.score - a.score || b.wave - a.wave)
+    .slice(0, 100);
+
+  // Podium (top 3)
+  const podiumEl = document.getElementById('podium-wrap');
+  podiumEl.innerHTML = '';
+  const order = [1, 0, 2]; // display order: 2nd, 1st, 3rd
+  order.forEach(idx => {
+    const e = entries[idx];
+    const placeNum = idx + 1;
+    const placeClass = `place-${placeNum}`;
+    const medals = ['🥇','🥈','🥉'];
+    const blockHeights = [120, 90, 70];
+
+    const slot = document.createElement('div');
+    slot.className = `podium-slot ${placeClass}`;
+
+    if(e) {
+      slot.innerHTML = `
+        <div class="podium-avatar">${e.name[0].toUpperCase()}</div>
+        <div class="podium-name">${escHtml(e.name)}</div>
+        <div class="podium-pts">${e.score.toLocaleString()}</div>
+        <div class="podium-wave">${t('stage')} ${e.wave}</div>
+        <div class="podium-block" style="height:${blockHeights[idx]}px">${medals[idx]}</div>
+      `;
+    } else {
+      slot.innerHTML = `
+        <div class="podium-avatar" style="opacity:0.2">?</div>
+        <div class="podium-name" style="opacity:0.3">---</div>
+        <div class="podium-pts" style="opacity:0.2">0</div>
+        <div class="podium-wave" style="opacity:0.2">${t('stage')} 0</div>
+        <div class="podium-block" style="height:${blockHeights[idx]}px;opacity:0.15">${medals[idx]}</div>
+      `;
+    }
+    podiumEl.appendChild(slot);
+  });
+
+  // Table (from rank 4 onward)
+  const tableEl = document.getElementById('lb-table');
+  tableEl.innerHTML = '';
+  if(entries.length === 0) {
+    tableEl.innerHTML = `<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:3px">${t('noPlayers')}</div>`;
+  } else {
+    entries.forEach((e, i) => {
+      if(i < 3) return; // top 3 on podium
+      const row = document.createElement('div');
+      row.className = 'lb-row' + (e.name === currentUser ? ' me' : '');
+      row.innerHTML = `
+        <div class="lb-rank">#${i+1}</div>
+        <div class="lb-name-cell">
+          <div class="lb-mini-av">${e.name[0].toUpperCase()}</div>
+          <div class="lb-username">${escHtml(e.name)}${e.name===currentUser?` <span style="color:var(--neon-cyan);font-size:10px">◀ ${t('you')}</span>`:''}</div>
+        </div>
+        <div class="lb-score-cell">${e.score.toLocaleString()}</div>
+        <div class="lb-wave-cell">${t('stage')} ${e.wave}</div>
+      `;
+      tableEl.appendChild(row);
+    });
+  }
+
+  showScreen('lb-screen');
+}
+
+function escHtml(s) { return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ——— SCREEN MANAGER ———
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if(id) document.getElementById(id)?.classList.add('active');
+  // Hide in-game lang btn when not playing
+  const hudLangBtn = document.getElementById('lang-btn');
+  if(hudLangBtn) hudLangBtn.style.display = (gameState==='playing') ? 'flex' : 'none';
+  applyLanguage();
+}
+function showMenu() {
+  document.getElementById('welcome-name').textContent = currentUser || '';
+  loadShopPurchases();
+  updateCoinDisplays();
+  Audio.setIntensity(0);
+  showScreen('menu-screen');
+}
+
+// ========== END AUTH SYSTEM ==========
+
+// ——— NEW FEATURES STATE ———
+let shieldActive = false, shieldCooldown = 0, shieldAngle = 0;
+let dashCooldown = 0, dashActive = false, dashVx = 0, dashVy = 0, dashTimer = 0;
+let upgrades = { fireRate:0, maxHealth:0, shieldRecharge:0, dashSpeed:0, orbitShield:0 };
+let mines = [];
+let slowMoTimer = 0, slowMoActive = false;
+let totalKills = 0, totalOrbsCollected = 0;
+let achievements = {};
+let gameMode = 'normal';
+let endlessElapsed = 0, endlessDifficulty = 1;
+let novaCount = 0, bossKillCount = 0, waveNoDamage = true;
+
+const ACHIEVEMENTS = [
+  { id:'first_blood', icon:'🩸', name:'First Blood',    desc:'הרג אויב ראשון' },
+  { id:'killer100',   icon:'💀', name:'Mass Destroyer', desc:'הרג 100 אויבים' },
+  { id:'wave10',      icon:'🌊', name:'Wave Surfer',    desc:'הגע לשלב 10' },
+  { id:'orbs50',      icon:'⭐', name:'Star Collector', desc:'אסוף 50 כדורים צהובים' },
+  { id:'combo10',     icon:'⚡', name:'Combo Master',   desc:'קומבו x10' },
+  { id:'boss_kill',   icon:'👑', name:'Boss Slayer',    desc:'הרג Boss' },
+  { id:'nova3',       icon:'💥', name:'Nova Lord',      desc:'השתמש ב-Nova 3 פעמים' },
+  { id:'upgrade_all', icon:'🔧', name:'Full Upgrade',   desc:'שדרג את כל היכולות פעם אחת' },
+  { id:'no_damage',   icon:'🛡️', name:'Ghost Pilot',   desc:'גמור שלב ללא נזק' },
+  { id:'endless5',    icon:'♾️', name:'Endless 5 Min',  desc:'שרוד 5 דקות ב-Endless' },
+];
+
+function checkAchievements() {
+  const checks = {
+    first_blood: ()=> totalKills >= 1,
+    killer100:   ()=> totalKills >= 100,
+    wave10:      ()=> wave >= 10,
+    orbs50:      ()=> totalOrbsCollected >= 50,
+    combo10:     ()=> combo >= 10,
+    boss_kill:   ()=> bossKillCount >= 1,
+    nova3:       ()=> novaCount >= 3,
+    upgrade_all: ()=> upgrades.fireRate>=1 && upgrades.maxHealth>=1 && upgrades.shieldRecharge>=1 && upgrades.dashSpeed>=1,
+    no_damage:   ()=> waveNoDamage && wave > 1,
+    endless5:    ()=> gameMode==='endless' && endlessElapsed >= 60*60*5,
+  };
+  ACHIEVEMENTS.forEach(a => {
+    if(!achievements[a.id] && checks[a.id] && checks[a.id]()) unlockAchievement(a.id);
+  });
+}
+
+function unlockAchievement(id) {
+  if(achievements[id]) return;
+  achievements[id] = true;
+  if(currentUser) {
+    const db = loadDB();
+    if(db.users[currentUser]) {
+      if(!db.users[currentUser].achievements) db.users[currentUser].achievements = {};
+      db.users[currentUser].achievements[id] = true;
+      saveDB(db);
+    }
+  }
+  const a = ACHIEVEMENTS.find(x=>x.id===id);
+  if(a) showAchievementPopup(a);
+}
+
+function showAchievementPopup(a) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;bottom:140px;right:20px;z-index:999;
+    background:rgba(0,8,35,0.96);border:1px solid #ffbe0b;border-radius:10px;
+    padding:14px 20px;font-family:'Orbitron',sans-serif;
+    box-shadow:0 0 30px rgba(255,190,11,0.5);
+    animation:slideInRight 0.4s ease forwards;max-width:260px;`;
+  el.innerHTML = `<div style="font-size:9px;color:#ffbe0b;letter-spacing:3px;margin-bottom:5px">🏅 ACHIEVEMENT UNLOCKED</div>
+    <div style="font-size:16px;margin-bottom:3px">${a.icon} ${a.name}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.6);font-family:'Exo 2',sans-serif">${a.desc}</div>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.animation='slideOutRight 0.4s ease forwards'; setTimeout(()=>el.remove(),400); }, 3500);
+}
+
+const dynStyle = document.createElement('style');
+dynStyle.textContent = `
+@keyframes slideInRight{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOutRight{from{opacity:1}to{transform:translateX(120%);opacity:0}}
+.upgrade-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:900px){.upgrade-grid{grid-template-columns:repeat(3,1fr)}}
+.upg-card{background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.2);border-radius:10px;
+  padding:14px 10px;text-align:center;transition:all 0.3s;cursor:default}
+.upg-card:hover{background:rgba(0,245,255,0.1);border-color:rgba(0,245,255,0.4)}
+.upg-card.maxed{border-color:rgba(255,190,11,0.4);background:rgba(255,190,11,0.05)}
+.upg-name{font-family:'Orbitron',sans-serif;font-size:11px;color:#fff;margin:8px 0 4px;letter-spacing:1px}
+.upg-desc{font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:8px;font-family:'Exo 2',sans-serif}
+.upg-lvl{color:#ffbe0b;font-size:14px;margin-bottom:8px;letter-spacing:2px}
+.upg-btn{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;padding:6px 12px;
+  background:transparent;border:1px solid rgba(0,245,255,0.4);color:#00f5ff;
+  cursor:pointer;border-radius:5px;transition:all 0.2s}
+.upg-btn:hover{background:rgba(0,245,255,0.15)}
+.upg-btn.disabled{border-color:rgba(255,190,11,0.3);color:#ffbe0b;cursor:default}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat-item{background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.15);border-radius:8px;padding:14px;text-align:center}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#00f5ff}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,0.4);font-family:'Exo 2',sans-serif;margin-top:4px}
+.ach-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:900px){.ach-grid{grid-template-columns:repeat(3,1fr)}}
+.ach-item{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px;text-align:center}
+.ach-item.unlocked{background:rgba(255,190,11,0.08);border-color:rgba(255,190,11,0.35)}
+.ach-item.locked{opacity:0.35;filter:grayscale(1)}
+.ach-name{font-family:'Orbitron',sans-serif;font-size:9px;color:#fff;margin:5px 0 2px;letter-spacing:1px}
+.ach-desc{font-size:9px;color:rgba(255,255,255,0.4);font-family:'Exo 2',sans-serif}
+#shield-bar-wrap{position:absolute;bottom:130px;right:30px;background:var(--card-bg);
+  border:1px solid rgba(0,245,255,0.3);border-radius:8px;padding:7px 14px;min-width:160px;pointer-events:none}
+#dash-bar-wrap{position:absolute;bottom:170px;right:30px;background:var(--card-bg);
+  border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:7px 14px;min-width:160px;pointer-events:none}
+.mini-bar-label{font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:2px;margin-bottom:4px}
+.mini-bar-bg{border-radius:3px;height:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)}
+.mini-bar-fill{height:100%;border-radius:3px;transition:width 0.3s}
+`;
+document.head.appendChild(dynStyle);
+
+// ——— ACTIVATE SHIELD [E] ———
+function activateShield() {
+  if(shieldCooldown > 0 || shieldActive) return;
+  shieldActive = true;
+  Audio.shieldOn();
+  const dur = 2000;
+  setTimeout(()=>{
+    shieldActive = false;
+    shieldCooldown = 300 - upgrades.shieldRecharge * 60;
+  }, dur);
+}
+
+// ——— DASH [Q] ———
+function activateDash() {
+  if(dashCooldown > 0 || dashActive) return;
+  const dx = mouseX - player.x, dy = mouseY - player.y;
+  const d = Math.hypot(dx,dy)||1;
+  const spd = 18 + upgrades.dashSpeed * 4;
+  dashVx = (dx/d)*spd; dashVy = (dy/d)*spd;
+  dashActive = true; dashTimer = 14;
+  dashCooldown = 90 - upgrades.dashSpeed * 15;
+  Audio.dashSfx();
+  player.invincible = Math.max(player.invincible, 18);
+  for(let i=0;i<10;i++) {
+    const a = Math.random()*Math.PI*2;
+    particles.push({x:player.x,y:player.y,vx:Math.cos(a)*4,vy:Math.sin(a)*4,size:4,color:'#a855f7',life:1,maxLife:1,decay:0.07});
+  }
+}
+
+// ——— UPGRADE SCREEN ———
+function showUpgradeScreen() {
+  const screen = document.getElementById('upgrade-screen');
+  screen.querySelector('.upgrade-wave').textContent = `⚡ ${t('stage')} ${wave} — ${t('stageComplete')} ⚡`;
+  const upgDefs = [
+    { key:'fireRate',       icon:'🔫', nameKey:'upg_fireRate', descKey:'upg_fireRate_d', max:3, costs:[60,130,220] },
+    { key:'maxHealth',      icon:'❤️',  nameKey:'upg_maxHp',    descKey:'upg_maxHp_d',    max:3, costs:[50,110,190] },
+    { key:'shieldRecharge', icon:'🔵', nameKey:'upg_shield',   descKey:'upg_shield_d',   max:3, costs:[70,150,250] },
+    { key:'dashSpeed',      icon:'💨', nameKey:'upg_dash',     descKey:'upg_dash_d',     max:3, costs:[80,170,280] },
+    { key:'orbitShield',    icon:'🌀', nameKey:'upg_orbit',    descKey:'upg_orbit_d',    max:3, costs:[100,200,350] },
+  ];
+  const coins = getCoins();
+  const grid = screen.querySelector('.upgrade-grid');
+  grid.innerHTML = '';
+  upgDefs.forEach(u => {
+    const lvl = upgrades[u.key], maxed = lvl >= u.max;
+    const cost = maxed ? null : u.costs[lvl];
+    const canAfford = !maxed && coins >= cost;
+    const div = document.createElement('div');
+    div.className = 'upg-card' + (maxed ? ' maxed' : '');
+    div.innerHTML = `
+      <div style="font-size:26px">${u.icon}</div>
+      <div class="upg-name">${t(u.nameKey)}</div>
+      <div class="upg-desc">${t(u.descKey)}</div>
+      <div class="upg-lvl">${'★'.repeat(lvl)}${'☆'.repeat(u.max-lvl)}</div>
+      ${maxed
+        ? `<div class="upg-btn disabled">✓ ${t('maxed')}</div>`
+        : `<button class="upg-btn${canAfford?'':' disabled'}" style="display:flex;align-items:center;justify-content:center;gap:5px">
+             <span>⭐ ${cost}</span>
+           </button>
+           ${!canAfford ? `<div style="font-size:10px;color:rgba(255,80,80,0.7);margin-top:4px">${t('needCoins').replace('{n}',(cost-coins).toLocaleString())}</div>` : ''}`
+      }`;
+    if(!maxed && canAfford) {
+      div.querySelector('button').onclick = () => buyUpgrade(u.key, cost);
+    }
+    grid.appendChild(div);
+  });
+  showScreen('upgrade-screen');
+}
+
+function buyUpgrade(key, cost) {
+  const maxes = { fireRate:3, maxHealth:3, shieldRecharge:3, dashSpeed:3, orbitShield:3 };
+  if(upgrades[key] >= maxes[key]) return;
+  if(!spendCoins(cost)) return;
+  upgrades[key]++;
+  if(key==='maxHealth') { maxHealth = 100+upgrades.maxHealth*25; health=Math.min(health+25,maxHealth); document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%'; }
+  checkAchievements();
+  showUpgradeScreen(); // refresh to update coin count
+}
+
+function closeUpgradeAndContinue() {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  gameState = 'playing';
+  wave++;
+  waveNoDamage = true;
+  startWave();
+}
+
+// ——— SKIP UPGRADES ———
+// ——— MINES ———
+function spawnMine(x, y) {
+  mines.push({ x:x||Math.random()*(W-100)+50, y:y||-20, vy:0.9+Math.random()*0.5, r:16, angle:0, armed:false, armTimer:80, life:700, flash:0 });
+}
+
+function drawMine(m) {
+  ctx.save(); ctx.translate(m.x, m.y); m.angle+=0.025;
+  ctx.shadowBlur = m.armed?20:8; ctx.shadowColor = m.armed?'#ff4400':'#666';
+  ctx.strokeStyle = m.armed?`rgba(255,80,0,${0.7+Math.sin(m.flash)*0.3})`:'#555'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(0,0,m.r,0,Math.PI*2); ctx.stroke();
+  for(let i=0;i<8;i++){const a=m.angle+i*Math.PI/4;ctx.beginPath();ctx.moveTo(Math.cos(a)*m.r,Math.sin(a)*m.r);ctx.lineTo(Math.cos(a)*(m.r+8),Math.sin(a)*(m.r+8));ctx.strokeStyle=m.armed?'#ff4400':'#444';ctx.stroke();}
+  ctx.fillStyle=m.armed?`rgba(255,60,0,0.8)`:'#333'; ctx.beginPath(); ctx.arc(0,0,m.r*0.5,0,Math.PI*2); ctx.fill();
+  if(m.armed){ctx.fillStyle='#fff';ctx.font='10px serif';ctx.textAlign='center';ctx.fillText('💣',0,3);}
+  ctx.restore();
+}
+
+// ——— MIMIC ENEMY ———
+function spawnMimic() {
+  enemies.push({ x:W-player.x, y:60, vx:0, vy:0, hp:6+wave, maxHp:6+wave,
+    type:'mimic', size:22, color:'#ff00ff', score:80, shoot:false,
+    shootTimer:0, angle:0, wobble:0, mirrorQueue:[], mirrorDelay:25 });
+}
+
+// ——— STATS ———
+function showStats() {
+  const db = loadDB();
+  const u = db.users[currentUser]||{};
+  const achs = u.achievements||{};
+  document.getElementById('stats-body').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-item"><div class="stat-val">${(u.bestScore||0).toLocaleString()}</div><div class="stat-lbl">שיא נקודות</div></div>
+      <div class="stat-item"><div class="stat-val">${u.bestWave||0}</div><div class="stat-lbl">שלב שיא</div></div>
+      <div class="stat-item"><div class="stat-val">${u.totalKills||0}</div><div class="stat-lbl">סה"כ הרוגים</div></div>
+      <div class="stat-item"><div class="stat-val">${u.totalGames||0}</div><div class="stat-lbl">משחקים</div></div>
+      <div class="stat-item"><div class="stat-val">${u.totalOrbs||0}</div><div class="stat-lbl">כדורים זהובים</div></div>
+      <div class="stat-item"><div class="stat-val">${Object.keys(achs).length}/${ACHIEVEMENTS.length}</div><div class="stat-lbl">הישגים</div></div>
+    </div>
+    <div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach-item ${achs[a.id]?'unlocked':'locked'}">
+      <div style="font-size:22px">${a.icon}</div><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div></div>`).join('')}
+    </div>`;
+  showScreen('stats-screen');
+}
+
+function updateGlobalStats() {
+  if(!currentUser) return;
+  const db = loadDB();
+  const u = db.users[currentUser];
+  if(!u) return;
+  u.totalKills = (u.totalKills||0) + totalKills;
+  u.totalGames = (u.totalGames||0) + 1;
+  u.totalOrbs  = (u.totalOrbs||0)  + totalOrbsCollected;
+  saveDB(db);
+}
+
+// ——— SLOW MO ———
+function triggerSlowMo() {
+  slowMoActive = true; slowMoTimer = 80;
+  showDamage(W/2-60, H/2-20, '⚠ LAST LIFE ⚠', '#ff0040', 28);
+}
+
+// ——— BACKGROUND ———
+function getBgPhase() { return Math.floor((wave-1)/5) % 3; }
+
+const sfCanvas = document.getElementById('starfield');
+const sfCtx = sfCanvas.getContext('2d');
+let W = sfCanvas.width = window.innerWidth;
+let H = sfCanvas.height = window.innerHeight;
+
+const stars = Array.from({length: 200}, () => ({
+  x: Math.random()*W, y: Math.random()*H,
+  r: Math.random()*1.8+0.2,
+  speed: Math.random()*1.5+0.3,
+  bright: Math.random()
+}));
+
+function drawStars() {
+  sfCtx.clearRect(0,0,W,H);
+  const bgP = getBgPhase();
+  // Tinted background overlay
+  if(bgP===1) { sfCtx.fillStyle='rgba(40,0,80,0.4)'; sfCtx.fillRect(0,0,W,H); }
+  if(bgP===2) { sfCtx.fillStyle='rgba(0,0,30,0.5)'; sfCtx.fillRect(0,0,W,H); }
+
+  const baseColors = ['rgba(255,255,255,','rgba(200,150,255,','rgba(100,200,255,'];
+  const col = baseColors[bgP];
+  const spd = [1, 1.6, 2.2][bgP];
+
+  stars.forEach(s => {
+    sfCtx.beginPath();
+    sfCtx.arc(s.x, s.y, s.r*(bgP===2?1.4:1), 0, Math.PI*2);
+    sfCtx.fillStyle = `${col}${0.3+s.bright*0.7})`;
+    sfCtx.fill();
+    s.y += s.speed * spd * (slowMoActive ? 0.25 : 1);
+    if(s.y > H) { s.y = 0; s.x = Math.random()*W; }
+  });
+
+  // Black hole visual for phase 2
+  if(bgP===2) {
+    const cx=W*0.15, cy=H*0.15;
+    const gr = sfCtx.createRadialGradient(cx,cy,5,cx,cy,80);
+    gr.addColorStop(0,'rgba(0,0,0,0.9)'); gr.addColorStop(0.5,'rgba(0,50,100,0.3)'); gr.addColorStop(1,'transparent');
+    sfCtx.fillStyle=gr; sfCtx.beginPath(); sfCtx.arc(cx,cy,80,0,Math.PI*2); sfCtx.fill();
+  }
+  // Nebula wisps for phase 1
+  if(bgP===1 && frameCount%3===0) {
+    const nx=Math.random()*W, ny=Math.random()*H;
+    sfCtx.fillStyle=`rgba(120,0,200,${Math.random()*0.04})`;
+    sfCtx.beginPath(); sfCtx.ellipse(nx,ny,Math.random()*60+20,Math.random()*30+10,Math.random()*Math.PI,0,Math.PI*2); sfCtx.fill();
+  }
+}
+
+// ——— GAME ———
+const gc = document.getElementById('gameCanvas');
+const ctx = gc.getContext('2d');
+gc.width = W; gc.height = H;
+
+// STATE
+let gameState = 'auth'; // auth | playing
+let score = 0, lives = 3, wave = 1, health = 100, maxHealth = 100;
+let combo = 0, comboTimer = 0;
+let specialCharge = 0;
+let mouseX = W/2, mouseY = H*0.8;
+let shooting = false, shootTimer = 0;
+let waveAnnounceTimer = 0;
+let turboCooldown = 0, turboActive = false;
+let activePowerups = {};
+let screenFlashTimer = 0;
+
+// ENTITIES
+let bullets = [], enemies = [], enemyBullets = [], particles = [], powerups = [], explosions = [];
+let bossActive = false, boss = null;
+let orbs = []; // yellow = collect, pink = avoid
+let orbSpawnTimer = 0;
+
+// Player ship
+const player = { x: W/2, y: H*0.8, w: 34, h: 40, speed: 7, invincible: 0, trail: [] };
+
+// ——— INPUT ———
+window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+window.addEventListener('mousedown', e => { if(e.button===0) shooting = true; });
+window.addEventListener('mouseup', e => { if(e.button===0) shooting = false; });
+
+window.addEventListener('keydown', e => {
+  if(gameState !== 'playing') return;
+  if(e.code === 'Space') { e.preventDefault(); if(specialCharge >= 100) triggerNova(); }
+  if(e.code === 'ShiftLeft') { if(turboCooldown <= 0) { turboActive = true; turboCooldown = 180; setTimeout(()=>turboActive=false, 500); } }
+  if(e.code === 'KeyE') activateShield();
+  if(e.code === 'KeyQ') activateDash();
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+// ——— SPAWN ———
+// ——— ORB SPAWNING ———
+function spawnOrb() {
+  const isYellow = Math.random() < 0.55; // 55% yellow, 45% pink
+  const x = Math.random() * (W - 60) + 30;
+  const baseSpeed = 1.5 + wave * 0.18;
+  orbs.push({
+    x, y: -20,
+    vx: (Math.random() - 0.5) * 2.5,
+    vy: baseSpeed + Math.random() * 1.2,
+    r: isYellow ? 14 : 12,
+    type: isYellow ? 'yellow' : 'pink',
+    color: isYellow ? '#ffbe0b' : '#ff006e',
+    glow: isYellow ? '#ffbe0b' : '#ff006e',
+    value: isYellow ? (20 + wave * 5) : -(30 + wave * 8),
+    pulse: Math.random() * Math.PI * 2,
+    wobble: Math.random() * Math.PI * 2,
+    life: 400 + Math.random() * 100
+  });
+}
+
+function spawnEnemy() {
+  const types = ['grunt', 'zigzag', 'sniper', 'tank', 'swarm'];
+  let waveTypes = wave <= 2 ? ['grunt','swarm'] : wave <= 4 ? ['grunt','zigzag','sniper'] : types;
+  const type = waveTypes[Math.floor(Math.random()*waveTypes.length)];
+  const x = Math.random()*(W-60)+30;
+
+  const configs = {
+    grunt:  { hp:2+wave, speed:1.5+wave*0.3, size:18, color:'#ff006e', score:10, shoot:false },
+    zigzag: { hp:3+wave, speed:2.2+wave*0.25, size:16, color:'#a855f7', score:20, shoot:false, zigzag:true },
+    sniper: { hp:2+wave, speed:1.0, size:14, color:'#00f5ff', score:30, shoot:true, shootRate:70 },
+    tank:   { hp:8+wave*2, speed:0.9, size:28, color:'#f97316', score:50, shoot:true, shootRate:50 },
+    swarm:  { hp:1, speed:3+wave*0.4, size:10, color:'#facc15', score:5, shoot:false }
+  };
+
+  const c = configs[type];
+  enemies.push({ x, y:-30, vx:0, vy:c.speed, hp:c.hp, maxHp:c.hp, type, ...c,
+    shootTimer: Math.random()*60, angle:0, wobble: Math.random()*Math.PI*2 });
+}
+
+function spawnBoss() {
+  bossActive = true;
+  Audio.bossEntry();
+  Audio.setIntensity(2);
+  boss = {
+    x: W/2, y: -80, vx: 1.5, vy: 0.4,
+    hp: 80 + wave * 30, maxHp: 80 + wave * 30,
+    phase: 1, angle: 0,
+    shootTimer: 0, shootPattern: 0,
+    size: 60, color: '#ff006e',
+    score: 500 + wave*100,
+    state: 'entering', enterY: 120
+  };
+}
+
+function spawnPowerup(x, y) {
+  if(Math.random() > 0.25) return;
+  const types = ['shield','rapid','spread','laser','bomb'];
+  const type = types[Math.floor(Math.random()*types.length)];
+  const colors = {shield:'#06d6a0',rapid:'#ffbe0b',spread:'#a855f7',laser:'#00f5ff',bomb:'#ff006e'};
+  const icons = {shield:'🛡️',rapid:'⚡',spread:'💥',laser:'🔫',bomb:'💣'};
+  powerups.push({ x, y, vy:1.5, type, color:colors[type], icon:icons[type], life:300, angle:0 });
+}
+
+// ——— DRAWING ———
+function drawPlayer(x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Turbo glow
+  if(turboActive) {
+    ctx.shadowBlur = 40; ctx.shadowColor = '#00f5ff';
+  }
+
+  // Trail
+  player.trail.forEach((t,i) => {
+    const a = i / player.trail.length;
+    ctx.beginPath();
+    ctx.arc(t.x - x, t.y - y, 6*a, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,245,255,${a*0.4})`;
+    ctx.fill();
+  });
+
+  // Ship body
+  const grad = ctx.createLinearGradient(0,-20,0,20);
+  grad.addColorStop(0, '#00f5ff'); grad.addColorStop(1, '#0066cc');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, -22); ctx.lineTo(-18, 18); ctx.lineTo(-6, 10); ctx.lineTo(0, 14);
+  ctx.lineTo(6, 10); ctx.lineTo(18, 18); ctx.closePath();
+  ctx.fill();
+
+  // Cockpit
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(0, -8, 5, 0, Math.PI*2);
+  ctx.fill();
+
+  // Engine glow
+  const now = Date.now();
+  const pulse = Math.sin(now*0.01)*4;
+  ctx.fillStyle = `rgba(255,150,0,0.9)`;
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 5, 10+pulse, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(255,230,100,0.8)`;
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 2, 6+pulse, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Invincibility flash
+  if(player.invincible > 0 && Math.floor(player.invincible/5)%2===0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill();
+  }
+
+  // Rotating shield
+  if(shieldActive) {
+    shieldAngle += 0.06;
+    ctx.shadowBlur = 30; ctx.shadowColor = '#00f5ff';
+    ctx.strokeStyle = 'rgba(0,245,255,0.7)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0,0,36,0,Math.PI*2); ctx.stroke();
+    // Animated segments
+    for(let i=0;i<6;i++){
+      const a=shieldAngle+i*Math.PI/3;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*36,Math.sin(a)*36,4,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,245,255,0.9)'; ctx.fill();
+    }
+  }
+
+  // Orbit shield balls
+  if(upgrades.orbitShield > 0) {
+    const count = upgrades.orbitShield;
+    for(let i=0;i<count;i++){
+      const a = shieldAngle*1.5 + i*(Math.PI*2/count);
+      const bx=Math.cos(a)*30, by=Math.sin(a)*30;
+      ctx.shadowBlur=15; ctx.shadowColor='#a855f7';
+      ctx.fillStyle='#a855f7'; ctx.beginPath(); ctx.arc(bx,by,5,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawOrb(o) {
+  o.pulse += 0.08;
+  const pulseFactor = 1 + Math.sin(o.pulse) * 0.12;
+  const r = o.r * pulseFactor;
+
+  ctx.save();
+  ctx.translate(o.x, o.y);
+
+  // Outer glow ring
+  ctx.shadowBlur = 30;
+  ctx.shadowColor = o.color;
+
+  // Gradient fill
+  const g = ctx.createRadialGradient(0, -r*0.3, r*0.1, 0, 0, r);
+  if(o.type === 'yellow') {
+    g.addColorStop(0, '#fffde7');
+    g.addColorStop(0.4, '#ffbe0b');
+    g.addColorStop(1, '#e65c00');
+  } else {
+    g.addColorStop(0, '#ffd6e7');
+    g.addColorStop(0.4, '#ff006e');
+    g.addColorStop(1, '#6600aa');
+  }
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner shine
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(-r*0.2, -r*0.3, r*0.35, r*0.22, -0.5, 0, Math.PI*2);
+  ctx.fill();
+
+  // Icon
+  ctx.font = `${r * 1.1}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowBlur = 0;
+  ctx.fillText(o.type === 'yellow' ? '⭐' : '💀', 0, 1);
+
+  ctx.restore();
+}
+
+function drawEnemy(e) {
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.rotate(e.angle);
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = e.color;
+
+  if(e.type === 'grunt') {
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.moveTo(0,e.size); ctx.lineTo(-e.size,-e.size); ctx.lineTo(e.size,-e.size); ctx.closePath();
+    ctx.fill();
+  } else if(e.type === 'zigzag') {
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.arc(0,0,e.size,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+    ctx.stroke();
+  } else if(e.type === 'sniper') {
+    ctx.strokeStyle = e.color; ctx.lineWidth = 3;
+    for(let i=0;i<4;i++) {
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(i*Math.PI/2)*e.size*1.5, Math.sin(i*Math.PI/2)*e.size*1.5);
+      ctx.stroke();
+    }
+    ctx.fillStyle = e.color;
+    ctx.beginPath(); ctx.arc(0,0,e.size*0.7,0,Math.PI*2); ctx.fill();
+  } else if(e.type === 'tank') {
+    ctx.fillStyle = e.color;
+    ctx.fillRect(-e.size,-e.size,e.size*2,e.size*2);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.strokeRect(-e.size,-e.size,e.size*2,e.size*2);
+    // HP bar
+    ctx.fillStyle = '#333'; ctx.fillRect(-e.size, e.size+4, e.size*2, 5);
+    ctx.fillStyle = '#0f0'; ctx.fillRect(-e.size, e.size+4, e.size*2*(e.hp/e.maxHp), 5);
+  } else if(e.type === 'swarm') {
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.moveTo(0,-e.size*1.2); ctx.lineTo(-e.size,e.size); ctx.lineTo(e.size,e.size); ctx.closePath();
+    ctx.fill();
+  } else if(e.type === 'mimic') {
+    ctx.rotate(Math.PI);
+    const grad2 = ctx.createLinearGradient(0,-20,0,20);
+    grad2.addColorStop(0,'#ff00ff'); grad2.addColorStop(1,'#6600aa');
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.moveTo(0,-22);ctx.lineTo(-18,18);ctx.lineTo(-6,10);ctx.lineTo(0,14);ctx.lineTo(6,10);ctx.lineTo(18,18);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ff00ff'; ctx.beginPath(); ctx.arc(0,-8,5,0,Math.PI*2); ctx.fill();
+    ctx.rotate(-Math.PI);
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(-e.size,e.size+4,e.size*2,5);
+    ctx.fillStyle='#f0f';ctx.fillRect(-e.size,e.size+4,e.size*2*(e.hp/e.maxHp),5);
+  }
+  ctx.restore();
+}
+
+function drawBoss(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  b.angle += 0.015;
+
+  // Outer ring
+  ctx.strokeStyle = b.phase === 2 ? '#ff8800' : '#ff006e';
+  ctx.lineWidth = 3;
+  ctx.shadowBlur = 30; ctx.shadowColor = ctx.strokeStyle;
+  ctx.beginPath(); ctx.arc(0,0,b.size+20,0,Math.PI*2); ctx.stroke();
+
+  // Rotating spikes
+  for(let i=0;i<8;i++) {
+    const a = b.angle + i*Math.PI/4;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*(b.size-5), Math.sin(a)*(b.size-5));
+    ctx.lineTo(Math.cos(a)*(b.size+30), Math.sin(a)*(b.size+30));
+    ctx.strokeStyle = `rgba(255,${b.phase===2?140:0},100,0.7)`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Core
+  const g = ctx.createRadialGradient(0,0,10,0,0,b.size);
+  g.addColorStop(0,'#fff');
+  g.addColorStop(0.3, b.phase===2?'#ff8800':'#ff006e');
+  g.addColorStop(1,'#330000');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(0,0,b.size,0,Math.PI*2); ctx.fill();
+
+  // HP bar
+  const bw = 140;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(-bw/2,b.size+15,bw,12);
+  const hpRatio = b.hp/b.maxHp;
+  ctx.fillStyle = hpRatio>0.5 ? '#0f0' : hpRatio>0.25 ? '#ff0' : '#f00';
+  ctx.fillRect(-bw/2,b.size+15,bw*hpRatio,12);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(-bw/2,b.size+15,bw,12);
+
+  // BOSS label
+  ctx.fillStyle='#fff'; ctx.font='bold 13px Orbitron'; ctx.textAlign='center';
+  ctx.fillText('⚠ BOSS', 0, b.size+45);
+
+  ctx.restore();
+}
+
+function drawBullet(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  if(b.laser) {
+    ctx.fillStyle = b.color;
+    ctx.shadowBlur = 20; ctx.shadowColor = b.color;
+    ctx.fillRect(-4, -15, 8, 30);
+  } else if(b.spread) {
+    ctx.fillStyle = b.color;
+    ctx.shadowBlur = 15; ctx.shadowColor = b.color;
+    ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = b.friendly ? '#00f5ff' : '#ff4040';
+    ctx.shadowBlur = 20; ctx.shadowColor = ctx.fillStyle;
+    ctx.fillRect(-3, -10, 6, 20);
+    const ig = ctx.createLinearGradient(0,-10,0,10);
+    ig.addColorStop(0,'rgba(255,255,255,0.9)'); ig.addColorStop(1,'transparent');
+    ctx.fillStyle = ig;
+    ctx.fillRect(-2,-10,4,20);
+  }
+  ctx.restore();
+}
+
+function drawParticle(p) {
+  ctx.save();
+  ctx.globalAlpha = p.life/p.maxLife;
+  ctx.fillStyle = p.color;
+  ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawPowerup(pw) {
+  ctx.save();
+  ctx.translate(pw.x, pw.y);
+  pw.angle += 0.05;
+  ctx.rotate(pw.angle);
+  ctx.shadowBlur = 20; ctx.shadowColor = pw.color;
+  ctx.strokeStyle = pw.color; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i=0;i<6;i++) {
+    const a = i*Math.PI/3;
+    i===0 ? ctx.moveTo(Math.cos(a)*18,Math.sin(a)*18) : ctx.lineTo(Math.cos(a)*18,Math.sin(a)*18);
+  }
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+  ctx.font = '18px serif'; ctx.textAlign='center';
+  ctx.fillText(pw.icon, pw.x, pw.y+6);
+}
+
+// ——— PARTICLES ———
+function explode(x, y, color, count=18, big=false) {
+  for(let i=0;i<count;i++) {
+    const angle = Math.random()*Math.PI*2;
+    const speed = Math.random()*(big?6:4)+1;
+    particles.push({
+      x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      size: Math.random()*(big?6:3)+1,
+      color, life:1, maxLife:1, decay: Math.random()*0.02+0.015
+    });
+  }
+}
+
+function shockwave(x, y) {
+  explosions.push({ x, y, r:0, maxR:200, life:1 });
+}
+
+// ——— NOVA BOMB ———
+function triggerNova() {
+  specialCharge = 0;
+  novaCount++;
+  Audio.nova();
+  document.getElementById('special-bar').style.width = '0%';
+  shockwave(player.x, player.y);
+  [...enemies].forEach(e => { addScore(e.score*2); explode(e.x,e.y,e.color,25,true); spawnPowerup(e.x,e.y); });
+  enemies = [];
+  if(boss) { boss.hp = Math.max(1, boss.hp - 50); }
+  enemyBullets = [];
+  orbs = orbs.filter(o=>o.type==='yellow'); // clear pink orbs only
+  showDamage(player.x, player.y-50, 'NOVA!', '#ffbe0b', 36);
+  checkAchievements();
+}
+
+// ——— COMBO ———
+function addCombo() {
+  combo++;
+  comboTimer = 120;
+  const cd = document.getElementById('combo-display');
+  if(combo >= 3) {
+    cd.style.opacity = '1';
+    cd.textContent = `⚡ COMBO x${combo} ⚡`;
+    Audio.comboSound(Math.min(combo, 10));
+    if(combo >= 5) addScore(combo*5);
+  }
+}
+
+function resetCombo() { combo = 0; document.getElementById('combo-display').style.opacity = '0'; }
+
+// ——— SCORE ———
+function addScore(v) {
+  if(v > 0 && shopPurchased['xp_multiplier']) v = Math.floor(v * (shopPurchased['xp_multiplier'] >= 2 ? 3 : 2));
+  score += v;
+  document.getElementById('score-display').textContent = score.toLocaleString();
+}
+
+function showDamage(x, y, text, color, size=20) {
+  const el = document.createElement('div');
+  el.className = 'dmg-number';
+  el.style.cssText = `left:${x-20}px;top:${y}px;color:${color};font-size:${size}px;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+// ——— COLLISION ———
+function dist(a, b) { return Math.hypot(a.x-b.x, a.y-b.y); }
+
+function checkCollisions() {
+  // Player bullets vs enemies
+  bullets = bullets.filter(b => {
+    if(!b.friendly) return true;
+    let hit = false;
+    enemies = enemies.filter(e => {
+      if(dist(b,e) < e.size + 6 + (shopPurchased['bullet_size']||0)*4) {
+        e.hp -= (activePowerups.laser ? 3 : 1);
+        if(!shopPurchased['piercing_shots']) hit = true;
+        explode(b.x, b.y, e.color, 6);
+        Audio.enemyHit();
+        if(e.hp <= 0) {
+          addScore(e.score * (combo >= 5 ? 2 : 1));
+          explode(e.x, e.y, e.color, 20, true);
+          Audio.enemyExplode();
+          spawnPowerup(e.x, e.y);
+          addCombo();
+          totalKills++;
+          if(shopPurchased['coin_fountain']) addCoins(shopPurchased['coin_fountain']);
+          specialCharge = Math.min(100, specialCharge + 8);
+          document.getElementById('special-bar').style.width = specialCharge + '%';
+          showDamage(e.x, e.y-20, '+'+e.score, '#ffbe0b');
+          checkAchievements();
+          return false;
+        }
+        showDamage(e.x, e.y-10, '-1', '#ff6666');
+        return true;
+      }
+      return true;
+    });
+
+    // Bullets vs boss
+    if(!hit && boss && dist(b, boss) < boss.size + 5) {
+      boss.hp -= (activePowerups.laser ? 3 : 1);
+      hit = true;
+      specialCharge = Math.min(100, specialCharge + 2);
+      document.getElementById('special-bar').style.width = specialCharge + '%';
+      explode(b.x, b.y, '#ff006e', 8);
+      if(boss.hp <= 0) {
+        addScore(boss.score);
+        explode(boss.x, boss.y, '#ff006e', 60, true);
+        Audio.bigExplode();
+        shockwave(boss.x, boss.y);
+        showDamage(boss.x, boss.y-60, '💥 BOSS DESTROYED!', '#ffbe0b', 28);
+
+        // Journal entry for normal mode
+        if(gameMode !== 'boss_rush') {
+          const dur = Math.floor((Date.now() - (bossRushStartTime || Date.now()))/1000);
+          saveJournalEntry({ type:'boss_normal', bossId:'wave_boss', bossName:`Boss - Stage ${wave}`,
+            bossIcon:'👑', result:'win', score, wave, duration:dur, mode:gameMode });
+        }
+
+        // Boss Rush: track and advance
+        if(gameMode === 'boss_rush' && boss.rushId) {
+          bossRushDefeated.push({ id:boss.rushId, name:boss.rushName, icon:boss.rushIcon, score:boss.score, index:bossRushIndex });
+          bossRushIndex++;
+        }
+
+        boss = null; bossActive = false;
+        Audio.setIntensity(gameMode==='boss_rush' ? 2 : 1);
+        bossKillCount++;
+        lives = Math.min(5, lives+1);
+        updateLivesDisplay();
+        checkAchievements();
+
+        if(gameMode === 'boss_rush') {
+          if(bossRushIndex >= BOSS_DEFS.length) { setTimeout(()=>endBossRush(true), 2000); }
+          else { setTimeout(()=>spawnBossRushBoss(), 3000); }
+        } else {
+          setTimeout(()=>{ if(gameMode==='normal') showUpgradeScreen(); else { wave++; startWave(); } }, 2500);
+        }
+      } else if(boss.hp <= boss.maxHp/2 && boss.phase === 1) {
+        boss.phase = 2;
+        showDamage(boss.x, boss.y-50, '⚠ PHASE 2!', '#ff8800', 24);
+      }
+    }
+    return !hit;
+  });
+
+  // Enemy bullets vs player
+  if(player.invincible <= 0) {
+    enemyBullets = enemyBullets.filter(b => {
+      if(dist(b, player) < 20) {
+        hitPlayer(10);
+        explode(b.x, b.y, '#ff4040', 8);
+        return false;
+      }
+      return true;
+    });
+
+    // Enemies vs player
+    enemies = enemies.filter(e => {
+      if(dist(e, player) < e.size + 20) {
+        hitPlayer(20);
+        explode(e.x, e.y, e.color, 15, true);
+        addScore(-Math.floor(e.score/2));
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // Powerups vs player
+  powerups = powerups.filter(pw => {
+    if(dist(pw, player) < 30) {
+      activatePowerup(pw.type);
+      Audio.powerupCollect();
+      showDamage(player.x, player.y-40, pw.icon + ' ' + pw.type.toUpperCase(), pw.color, 18);
+      explode(pw.x, pw.y, pw.color, 15);
+      return false;
+    }
+    return true;
+  });
+}
+
+function hitPlayer(dmg) {
+  if(player.invincible > 0) return;
+  if(shieldActive) { explode(player.x, player.y, '#00f5ff', 8); return; }
+  if(upgrades.orbitShield > 0 && Math.random() < upgrades.orbitShield * 0.2) { explode(player.x, player.y,'#a855f7',6); return; }
+  if(shopPurchased['armor_plating']) dmg = Math.floor(dmg * 0.8);
+  waveNoDamage = false;
+  health = Math.max(0, health - dmg);
+  player.invincible = 90;
+  Audio.playerHurt();
+  document.getElementById('health-bar').style.width = (health/maxHealth*100)+'%';
+  resetCombo();
+  showDamage(player.x+20, player.y-20, '-'+dmg, '#ff0040', 22);
+  if(health <= 0) {
+    lives--;
+    health = maxHealth;
+    document.getElementById('health-bar').style.width = '100%';
+    updateLivesDisplay();
+    explode(player.x, player.y, '#00f5ff', 40, true);
+    shockwave(player.x, player.y);
+    if(lives === 1) triggerSlowMo();
+    if(lives <= 0) gameOver();
+  }
+}
+
+function activatePowerup(type) {
+  clearTimeout(activePowerups[type+'_timer']);
+  activePowerups[type] = true;
+  activePowerups[type+'_timer'] = setTimeout(() => {
+    delete activePowerups[type];
+    updatePowerupDisplay();
+  }, type==='bomb' ? 100 : 8000);
+  if(type === 'shield') { health = Math.min(maxHealth, health+30); document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%'; }
+  if(type === 'bomb') { triggerNova(); }
+  updatePowerupDisplay();
+}
+
+function updatePowerupDisplay() {
+  const d = document.getElementById('powerup-display');
+  d.innerHTML = Object.keys(activePowerups)
+    .filter(k => !k.includes('_'))
+    .map(k => `<div class="powerup-icon">${{shield:'🛡️',rapid:'⚡',spread:'💥',laser:'🔫',bomb:'💣'}[k]||'?'}</div>`)
+    .join('');
+}
+
+function updateLivesDisplay() {
+  document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0,lives));
+}
+
+// ——— SHOOTING ———
+let spreadAngle = 0;
+function fireBullet() {
+  const cx = player.x, cy = player.y - 22;
+  if(activePowerups.spread) {
+    Audio.shoot();
+    for(let i=-1;i<=1;i++) {
+      bullets.push({ x:cx, y:cy, vx:i*3, vy:-(activePowerups.laser?25:16), friendly:true,
+        spread:true, color:'#a855f7', size:5 });
+    }
+  } else if(activePowerups.laser) {
+    Audio.shootLaser();
+    bullets.push({ x:cx, y:cy, vx:0, vy:-28, friendly:true, laser:true, color:'#00f5ff', size:8 });
+  } else {
+    Audio.shoot();
+    bullets.push({ x:cx-7, y:cy, vx:0, vy:-18, friendly:true });
+    bullets.push({ x:cx+7, y:cy, vx:0, vy:-18, friendly:true });
+  }
+}
+
+// ——— ENEMY SHOOTING ———
+function enemyShoot(e) {
+  const dx = player.x - e.x, dy = player.y - e.y;
+  const dist2 = Math.hypot(dx,dy);
+  enemyBullets.push({ x:e.x, y:e.y, vx:(dx/dist2)*5, vy:(dy/dist2)*5 });
+}
+
+function bossShoot(b) {
+  b.shootPattern = (b.shootPattern+1)%3;
+  const count = b.phase===2 ? 12 : 8;
+  if(b.shootPattern === 0) {
+    // Circle burst
+    for(let i=0;i<count;i++) {
+      const a = (i/count)*Math.PI*2 + b.angle;
+      enemyBullets.push({ x:b.x, y:b.y, vx:Math.cos(a)*4.5, vy:Math.sin(a)*4.5 });
+    }
+  } else if(b.shootPattern === 1) {
+    // Aimed triple
+    const dx = player.x-b.x, dy = player.y-b.y, d = Math.hypot(dx,dy);
+    for(let i=-1;i<=1;i++) {
+      enemyBullets.push({ x:b.x, y:b.y, vx:(dx/d)*5+i*1.5, vy:(dy/d)*5 });
+    }
+  } else {
+    // Spiral
+    for(let i=0;i<(b.phase===2?5:3);i++) {
+      const a = b.angle + i*(Math.PI*2/5);
+      enemyBullets.push({ x:b.x, y:b.y, vx:Math.cos(a)*3, vy:Math.sin(a)*3 });
+    }
+  }
+}
+
+// ——— WAVE SYSTEM ———
+let spawnInterval, waveEnemyCount, waveEnemiesSpawned, waveCleared;
+let spawnRate = 120;
+
+function startWave() {
+  waveEnemiesSpawned = 0;
+  waveEnemyCount = 10 + wave * 5;
+  waveCleared = false;
+  spawnRate = Math.max(22, 100 - wave*10);
+
+  document.getElementById('wave-display').textContent = wave;
+  const wa = document.getElementById('wave-announce');
+  wa.textContent = wave % 5 === 0 ? `⚠ ⚠ BOSS STAGE ${wave} ⚠` : `STAGE ${wave}`;
+  wa.style.opacity = '1';
+  waveAnnounceTimer = 120;
+}
+
+function startGame() {
+  loadShopPurchases();
+  sessionCoins = 0;
+  score = 0;
+  lives = 3 + (shopPurchased['extra_life'] ? 1 : 0);
+  wave = 1;
+  health = maxHealth = 100 + upgrades.maxHealth*25;
+  combo = 0; specialCharge = shopPurchased['start_bombs'] ? (shopPurchased['start_bombs'] >= 2 ? 100 : 60) : 0;
+  bossActive = false; boss = null;
+  bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; explosions = []; orbs = []; mines = [];
+  orbSpawnTimer = 0; screenFlashTimer = 0;
+  shieldActive = false; shieldCooldown = 0; dashCooldown = 0; dashActive = false;
+  slowMoActive = false; slowMoTimer = 0;
+  novaCount = 0; bossKillCount = 0; waveNoDamage = true;
+  totalKills = 0; totalOrbsCollected = 0;
+  endlessElapsed = 0; endlessDifficulty = 1;
+  bossRushStartTime = Date.now();
+  activePowerups = {};
+  player.x = W/2; player.y = H*0.8;
+  player.invincible = 0; player.trail = [];
+  document.getElementById('score-display').textContent = '0';
+  document.getElementById('health-bar').style.width = '100%';
+  document.getElementById('special-bar').style.width = specialCharge + '%';
+  document.getElementById('score-final').style.display = 'none';
+  updateLivesDisplay();
+  updatePowerupDisplay();
+  updateCoinDisplays();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  gameState = 'playing';
+  Audio.setIntensity(1);
+  startWave();
+}
+
+function startEndless() {
+  gameMode = 'endless';
+  startGame();
+}
+
+function startNormal() {
+  gameMode = 'normal';
+  startGame();
+}
+
+function returnToMenu() {
+  if(gameState !== 'playing') return;
+  updateBestScore(score, wave);
+  updateGlobalStats();
+  gameState = 'menu'; gameMode = 'normal';
+  const sf = document.getElementById('score-final');
+  sf.style.display = 'block';
+  sf.textContent = `FINAL SCORE: ${score.toLocaleString()}  |  STAGE: ${wave}`;
+  resetCombo();
+  showMenu();
+}
+
+function gameOver() {
+  if(gameMode === 'boss_rush') { endBossRush(false); return; }
+  gameState = 'menu';
+  updateBestScore(score, wave);
+  updateGlobalStats();
+  gameMode = 'normal';
+  const sf = document.getElementById('score-final');
+  sf.style.display = 'block';
+  sf.textContent = `FINAL SCORE: ${score.toLocaleString()}  |  STAGE: ${wave}`;
+  resetCombo();
+  showMenu();
+}
+
+// ——— MAIN UPDATE ———
+let frameCount = 0;
+function update() {
+  frameCount++;
+
+  if(gameState !== 'playing') return;
+
+  // Move player toward mouse
+  const targetX = mouseX, targetY = mouseY;
+  const speed = turboActive ? player.speed*2.5 : (activePowerups.rapid ? player.speed*1.5 : player.speed);
+  const dx = targetX - player.x, dy = targetY - player.y;
+  const d = Math.hypot(dx,dy);
+  if(d > 2) {
+    player.x += (dx/d)*Math.min(d, speed);
+    player.y += (dy/d)*Math.min(d, speed);
+  }
+  player.x = Math.max(20, Math.min(W-20, player.x));
+  player.y = Math.max(20, Math.min(H-20, player.y));
+
+  // Trail
+  player.trail.push({x:player.x, y:player.y});
+  if(player.trail.length > 10) player.trail.shift();
+
+  // Dash movement
+  if(dashActive) {
+    player.x += dashVx; player.y += dashVy;
+    dashTimer--;
+    if(dashTimer <= 0) { dashActive = false; dashVx=0; dashVy=0; }
+    player.x = Math.max(20, Math.min(W-20, player.x));
+    player.y = Math.max(20, Math.min(H-20, player.y));
+  }
+  if(dashCooldown > 0) dashCooldown--;
+  if(shieldCooldown > 0) shieldCooldown--;
+  shieldAngle += 0.05;
+
+  // Slow motion
+  if(slowMoActive) { slowMoTimer--; if(slowMoTimer<=0) slowMoActive=false; }
+  const timeMult = slowMoActive ? 0.3 : 1;
+
+  // Endless mode
+  if(gameMode==='endless') {
+    endlessElapsed++;
+    endlessDifficulty = 1 + endlessElapsed/3600;
+    const eRate = Math.max(15, 60 - endlessDifficulty*5);
+    if(frameCount % Math.floor(eRate) === 0) spawnEnemy();
+    if(frameCount % 300 === 0 && wave%3===0) spawnMimic();
+    if(frameCount % 500 === 0) spawnMine();
+    if(frameCount % 1800 === 0) { wave++; document.getElementById('wave-display').textContent=wave; }
+    checkAchievements();
+  }
+
+  // Mini-boss every 3rd wave (non-boss waves)
+  if(wave % 3 === 0 && wave % 5 !== 0 && frameCount === 60 && !bossActive) spawnMimic();
+
+  // Mine spawning in normal mode
+  if(wave >= 3 && frameCount % Math.max(200, 400-wave*15) === 0 && !bossActive) spawnMine();
+
+  // Update mines
+  mines.forEach(m => {
+    m.y += m.vy * timeMult; m.angle+=0.025; m.flash+=0.15;
+    m.life--;
+    if(!m.armed) { m.armTimer--; if(m.armTimer<=0) m.armed=true; }
+  });
+  mines = mines.filter(m => m.y < H+40 && m.life > 0);
+
+  // Mine collision with player
+  mines = mines.filter(m => {
+    if(m.armed && dist(m, player) < m.r+18 && player.invincible<=0) {
+      explode(m.x,m.y,'#ff4400',30,true); shockwave(m.x,m.y);
+      hitPlayer(35); return false;
+    }
+    return true;
+  });
+  // Mine collision with bullets
+  mines = mines.filter(m => {
+    if(!m.armed) return true;
+    let hit = false;
+    bullets = bullets.filter(b=>{ if(b.friendly && dist(b,m)<m.r+4){hit=true;return false;} return true; });
+    if(hit){ addScore(15); explode(m.x,m.y,'#ff4400',25,true); shockwave(m.x,m.y); return false; }
+    return true;
+  });
+
+  // Update mimic enemy behavior
+  enemies.forEach(e => {
+    if(e.type==='mimic') {
+      e.mirrorQueue.push({x:player.x, y:player.y});
+      if(e.mirrorQueue.length > e.mirrorDelay) {
+        const target = e.mirrorQueue.shift();
+        const tdx = (W-target.x) - e.x, tdy = target.y - e.y;
+        const td = Math.hypot(tdx,tdy)||1;
+        e.x += (tdx/td)*4; e.y += (tdy/td)*3;
+      }
+      e.x=Math.max(20,Math.min(W-20,e.x));
+      e.y=Math.max(20,Math.min(H-20,e.y));
+    }
+  });
+
+  // Update shield/dash cooldown UI
+  const sCool = shieldCooldown/(300-upgrades.shieldRecharge*60);
+  const dCool = dashCooldown/(90-upgrades.dashSpeed*15);
+  document.getElementById('shield-fill').style.width = shieldActive?'100%':(Math.max(0,1-sCool)*100)+'%';
+  document.getElementById('dash-fill').style.width = (Math.max(0,1-dCool)*100)+'%';
+
+  // Fire rate upgrade
+  const baseRate = activePowerups.rapid ? 4 : Math.max(4, 12 - upgrades.fireRate*3);
+
+  if(shooting) {
+    shootTimer++;
+    if(shootTimer >= baseRate) { fireBullet(); shootTimer = 0; }
+  }
+
+
+
+  // Wave announce
+  if(waveAnnounceTimer > 0) {
+    waveAnnounceTimer--;
+    if(waveAnnounceTimer === 0) document.getElementById('wave-announce').style.opacity = '0';
+  }
+
+  // Spawning
+  if(!bossActive && gameMode !== 'boss_rush') {
+    if(frameCount % spawnRate === 0 && waveEnemiesSpawned < waveEnemyCount) {
+      spawnEnemy();
+      waveEnemiesSpawned++;
+    }
+    // Wave completion
+    if(waveEnemiesSpawned >= waveEnemyCount && enemies.length === 0 && !bossActive && !waveCleared) {
+      waveCleared = true;
+      Audio.waveComplete();
+      checkAchievements();
+      if(wave % 5 === 0) {
+        spawnBoss();
+      } else if(gameMode === 'normal') {
+        setTimeout(()=>showUpgradeScreen(), 1200);
+      } else {
+        wave++;
+        waveNoDamage = true;
+        setTimeout(startWave, 1200);
+      }
+    }
+  }
+
+  // Combo timer
+  if(comboTimer > 0) { comboTimer--; if(comboTimer===0) resetCombo(); }
+
+  // Update bullets
+  bullets = bullets.filter(b => { b.x+=b.vx; b.y+=b.vy; return b.y>-30 && b.y<H+30 && b.x>-30 && b.x<W+30; });
+  enemyBullets = enemyBullets.filter(b => { b.x+=b.vx; b.y+=b.vy; return b.x>-30&&b.x<W+30&&b.y>-30&&b.y<H+30; });
+
+  // Update enemies
+  enemies.forEach(e => {
+    e.angle += 0.05;
+    e.wobble += 0.04;
+    if(e.type === 'zigzag') { e.vx = Math.sin(e.wobble)*3; }
+    if(e.type === 'swarm') { e.vx = Math.sin(e.wobble*0.5)*2; }
+    e.x += e.vx; e.y += e.vy;
+    e.x = Math.max(20, Math.min(W-20, e.x));
+    if(e.shoot) {
+      e.shootTimer++;
+      if(e.shootTimer >= e.shootRate) { enemyShoot(e); e.shootTimer = 0; }
+    }
+  });
+  enemies = enemies.filter(e => e.y < H+50);
+
+  // Update boss
+  if(boss) {
+    if(boss.state === 'entering') {
+      boss.y += 1.5;
+      if(boss.y >= boss.enterY) boss.state = 'active';
+    } else {
+      boss.x += boss.vx * (boss.phase===2?1.5:1);
+      boss.y += Math.sin(frameCount*0.02)*0.5;
+      if(boss.x < 80 || boss.x > W-80) boss.vx *= -1;
+    }
+    boss.shootTimer++;
+    const rate = boss.phase===2 ? Math.max(20,(boss.shootRate||65)-15) : (boss.shootRate||65);
+    if(boss.shootTimer >= rate) { bossShoot(boss); boss.shootTimer = 0; }
+  }
+
+  // Update particles
+  particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life-=p.decay; p.size*=0.96; });
+  particles = particles.filter(p => p.life > 0 && p.size > 0.3);
+
+  // Update powerups
+  powerups.forEach(pw => { pw.y+=pw.vy; pw.life--; });
+  powerups = powerups.filter(pw => pw.y < H+30 && pw.life > 0);
+
+  // Shop effect: health regen
+  if(shopPurchased['health_regen'] && frameCount % (120 - shopPurchased['health_regen']*20) === 0) {
+    health = Math.min(maxHealth, health + shopPurchased['health_regen']);
+    document.getElementById('health-bar').style.width = (health/maxHealth*100)+'%';
+  }
+
+  // Shop effect: auto shield when low HP
+  if(shopPurchased['auto_shield'] && health < maxHealth*0.25 && !shieldActive && shieldCooldown<=0) {
+    activateShield();
+  }
+
+  // Shop effect: coin magnet - pull nearby yellow orbs
+  if(shopPurchased['coin_magnet']) {
+    const magnetRange = 80 + shopPurchased['coin_magnet']*50;
+    orbs.forEach(o => {
+      if(o.type==='yellow') {
+        const dx=player.x-o.x, dy=player.y-o.y, d=Math.hypot(dx,dy);
+        if(d < magnetRange && d > 1) { o.x+=dx/d*4; o.y+=dy/d*4; }
+      }
+    });
+  }
+
+  // Shop effect: wider orb pickup range (faster_orbs)
+  const orbPickupRange = 18 + (shopPurchased['faster_orbs']||0)*20;
+
+  // Update orbs
+  orbSpawnTimer++;
+  const orbRate = Math.max(35, 90 - wave * 7);
+  if(orbSpawnTimer >= orbRate) { spawnOrb(); orbSpawnTimer = 0; }
+
+  orbs.forEach(o => {
+    o.wobble += 0.03;
+    o.x += o.vx + Math.sin(o.wobble) * 0.6;
+    o.y += o.vy;
+    o.life--;
+    // Bounce off walls
+    if(o.x < 15 || o.x > W-15) o.vx *= -1;
+  });
+  orbs = orbs.filter(o => o.y < H + 40 && o.life > 0);
+
+  // Orb vs player collision
+  orbs = orbs.filter(o => {
+    if(dist(o, player) < o.r + orbPickupRange) {
+      if(o.type === 'yellow') {
+        const pts = o.value * (combo >= 3 ? 2 : 1);
+        addScore(pts);
+        totalOrbsCollected++;
+        Audio.collectYellow();
+        const coinBase = 1 + (shopPurchased['coin_bonus']||0) + (shopPurchased['coin_fountain']||0);
+        addCoins(coinBase);
+        explode(o.x, o.y, '#ffbe0b', 18, false);
+        showDamage(o.x, o.y - 20, '+' + pts + ' ⭐', '#ffbe0b', 22);
+        addCombo();
+        specialCharge = Math.min(100, specialCharge + 5);
+        document.getElementById('special-bar').style.width = specialCharge + '%';
+        checkAchievements();
+      } else {
+        const penalty = Math.abs(o.value);
+        score = Math.max(0, score - penalty);
+        document.getElementById('score-display').textContent = score.toLocaleString();
+        Audio.collectPink();
+        explode(o.x, o.y, '#ff006e', 20, false);
+        showDamage(o.x, o.y - 20, '-' + penalty + ' 💀', '#ff006e', 22);
+        resetCombo();
+        // Screen flash effect
+        screenFlashTimer = 12;
+      }
+      return false;
+    }
+    return true;
+  });
+
+  // Update explosions
+  explosions.forEach(ex => { ex.r += 8; ex.life -= 0.06; });
+  explosions = explosions.filter(ex => ex.life > 0);
+
+  checkCollisions();
+}
+
+// ——— MAIN DRAW ———
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  // Explosions
+  explosions.forEach(ex => {
+    ctx.save();
+    ctx.globalAlpha = ex.life * 0.4;
+    ctx.strokeStyle = '#ffbe0b';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 30; ctx.shadowColor = '#ffbe0b';
+    ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+  });
+
+  particles.forEach(drawParticle);
+  orbs.forEach(drawOrb);
+  mines.forEach(drawMine);
+  powerups.forEach(drawPowerup);
+
+  // Enemy bullets
+  enemyBullets.forEach(b => {
+    ctx.save();
+    ctx.fillStyle = '#ff4444';
+    ctx.shadowBlur = 12; ctx.shadowColor = '#ff4444';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  bullets.forEach(drawBullet);
+  enemies.forEach(drawEnemy);
+  if(boss) drawBoss(boss);
+  drawPlayer(player.x, player.y);
+
+  // Slow-mo vignette
+  if(slowMoActive) {
+    ctx.save();
+    ctx.globalAlpha = 0.25 + Math.sin(Date.now()*0.01)*0.1;
+    const vg = ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
+    vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(255,0,64,0.6)');
+    ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  // Endless timer
+  if(gameMode==='endless' && gameState==='playing') {
+    const secs = Math.floor(endlessElapsed/60);
+    const m2=Math.floor(secs/60), s2=secs%60;
+    ctx.save();
+    ctx.font='bold 13px Orbitron';ctx.fillStyle='rgba(255,255,255,0.5)';ctx.textAlign='center';
+    ctx.fillText(`♾️ ${m2}:${s2.toString().padStart(2,'0')}`, W/2, H-15);
+    ctx.restore();
+  }
+
+  // Pink orb hit screen flash
+  if(screenFlashTimer > 0) {
+    ctx.save();
+    ctx.globalAlpha = screenFlashTimer / 12 * 0.35;
+    ctx.fillStyle = '#ff006e';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    screenFlashTimer--;
+  }
+}
+
+// ——— LOOP ———
+function gameLoop() {
+  drawStars();
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('resize', () => {
+  W = gc.width = sfCanvas.width = window.innerWidth;
+  H = gc.height = sfCanvas.height = window.innerHeight;
+});
+
+// ============================================================
+// 🎵 AUDIO SYSTEM — Synthwave Music + SFX (Web Audio API)
+// ============================================================
+const Audio = (() => {
+  let ctx = null;
+  let masterGain, musicGain, sfxGain;
+  let musicEnabled = true, sfxEnabled = true;
+  let musicPlaying = false;
+  let scheduledNodes = [];
+  let bpm = 128;
+  let beatTimer = null;
+  let intensity = 0; // 0=calm, 1=action, 2=boss
+  let currentIntensity = 0;
+
+  const MUSIC_VOL  = 0.22;
+  const SFX_VOL    = 0.55;
+
+  function init() {
+    if(ctx) return;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctx.createGain(); masterGain.gain.value = 1;
+      musicGain  = ctx.createGain(); musicGain.gain.value  = MUSIC_VOL;
+      sfxGain    = ctx.createGain(); sfxGain.gain.value    = SFX_VOL;
+      musicGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(ctx.destination);
+    } catch(e) { ctx = null; }
+  }
+
+  // ——— Low-level helpers ———
+  function osc(type, freq, startT, dur, gainVal=0.3, dest=sfxGain) {
+    if(!ctx) return null;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, startT);
+    g.gain.setValueAtTime(gainVal, startT);
+    g.gain.exponentialRampToValueAtTime(0.0001, startT+dur);
+    o.connect(g); g.connect(dest);
+    o.start(startT); o.stop(startT+dur);
+    return { osc:o, gain:g };
+  }
+
+  function sweepOsc(type, freqFrom, freqTo, startT, dur, gainVal=0.3, dest=sfxGain) {
+    if(!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freqFrom, startT);
+    o.frequency.exponentialRampToValueAtTime(freqTo, startT+dur);
+    g.gain.setValueAtTime(gainVal, startT);
+    g.gain.exponentialRampToValueAtTime(0.0001, startT+dur);
+    o.connect(g); g.connect(dest);
+    o.start(startT); o.stop(startT+dur);
+  }
+
+  function noise(startT, dur, gainVal=0.15, filterFreq=800, dest=sfxGain) {
+    if(!ctx) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate*dur, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = filterFreq; filt.Q.value = 1.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gainVal, startT);
+    g.gain.exponentialRampToValueAtTime(0.0001, startT+dur);
+    src.connect(filt); filt.connect(g); g.connect(dest);
+    src.start(startT); src.stop(startT+dur);
+  }
+
+  // ——— SOUND EFFECTS ———
+  function shoot() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sawtooth', 480, 180, t, 0.08, 0.18);
+    sweepOsc('square',   380, 120, t, 0.07, 0.08);
+  }
+
+  function shootLaser() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sawtooth', 900, 300, t, 0.15, 0.22);
+    osc('sine', 440, t, 0.15, 0.1);
+  }
+
+  function enemyHit() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    noise(t, 0.06, 0.12, 600);
+    sweepOsc('square', 220, 80, t, 0.08, 0.1);
+  }
+
+  function enemyExplode() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    noise(t, 0.25, 0.28, 300);
+    sweepOsc('sawtooth', 180, 40, t, 0.25, 0.2);
+    osc('sine', 60, t, 0.3, 0.15);
+  }
+
+  function bigExplode() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    noise(t, 0.6, 0.45, 150);
+    sweepOsc('sawtooth', 120, 20, t, 0.5, 0.35);
+    osc('sine', 40, t, 0.5, 0.3);
+    osc('sine', 55, t+0.05, 0.45, 0.2);
+  }
+
+  function collectYellow() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sine', 440, 880, t, 0.12, 0.25);
+    sweepOsc('sine', 660, 1320, t+0.04, 0.1, 0.15);
+  }
+
+  function collectPink() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sawtooth', 300, 100, t, 0.18, 0.3);
+    noise(t, 0.12, 0.15, 400);
+  }
+
+  function playerHurt() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    noise(t, 0.3, 0.35, 200);
+    sweepOsc('sawtooth', 260, 60, t, 0.3, 0.3);
+    osc('sine', 80, t, 0.25, 0.2);
+  }
+
+  function nova() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sawtooth', 60, 1200, t, 0.1, 0.4);
+    sweepOsc('sine', 1200, 200, t+0.1, 0.5, 0.35);
+    noise(t, 0.6, 0.4, 500);
+    osc('sine', 55, t, 0.6, 0.3);
+  }
+
+  function bossEntry() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    // Deep dramatic chord
+    [55, 82, 110, 165].forEach((f,i) => osc('sawtooth', f, t+i*0.04, 1.2, 0.18));
+    sweepOsc('sawtooth', 220, 55, t, 0.8, 0.25);
+    noise(t+0.2, 0.4, 0.2, 200);
+  }
+
+  function dashSfx() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sine', 300, 900, t, 0.1, 0.3);
+    noise(t, 0.08, 0.1, 1200);
+  }
+
+  function shieldOn() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    sweepOsc('sine', 440, 880, t, 0.2, 0.2);
+    sweepOsc('triangle', 660, 1320, t+0.05, 0.18, 0.12);
+  }
+
+  function powerupCollect() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    [440,554,659,880].forEach((f,i)=>sweepOsc('sine',f,f*1.2,t+i*0.06,0.1,0.2));
+  }
+
+  function waveComplete() {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    [523,659,784,1047].forEach((f,i)=>osc('sine',f,t+i*0.08,0.3,0.18));
+  }
+
+  function comboSound(level) {
+    if(!ctx||!sfxEnabled) return;
+    const t = ctx.currentTime;
+    const f = 330 + level * 55;
+    sweepOsc('sine', f, f*1.5, t, 0.12, 0.2+level*0.02);
+  }
+
+  // ——— SYNTHWAVE MUSIC ENGINE ———
+  // Chord progressions (minor synthwave style)
+  const CHORDS = [
+    [55,69,82,110],   // Am
+    [49,62,73,98],    // Em
+    [52,65,78,104],   // Fm
+    [58,73,87,116],   // Bm
+  ];
+  const BASS_NOTES   = [55, 49, 52, 58];
+  const LEAD_SCALE   = [55,58,62,65,67,70,74,77]; // A minor pentatonic-ish
+
+  let beatCount = 0;
+  let arpIndex  = 0;
+  let chordIndex = 0;
+
+  function getBeat() { return 60 / bpm; }
+
+  function playKick(t) {
+    if(!ctx) return;
+    sweepOsc('sine', 160, 30, t, 0.2, 0.5, musicGain);
+    noise(t, 0.05, 0.08, 200, musicGain);
+  }
+
+  function playSnare(t) {
+    if(!ctx) return;
+    noise(t, 0.12, 0.18, 1800, musicGain);
+    osc('sine', 180, t, 0.08, 0.12, musicGain);
+  }
+
+  function playHihat(t, open=false) {
+    if(!ctx) return;
+    noise(t, open?0.25:0.05, 0.1, 8000, musicGain);
+  }
+
+  function playBass(t, note) {
+    if(!ctx) return;
+    sweepOsc('sawtooth', note, note*0.5, t, getBeat()*0.9, 0.18, musicGain);
+    osc('sine', note, t, getBeat()*0.9, 0.12, musicGain);
+  }
+
+  function playArp(t, chord) {
+    if(!ctx) return;
+    const note = chord[arpIndex % chord.length];
+    sweepOsc('square', note*2, note*2.5, t, getBeat()*0.3, 0.06, musicGain);
+    arpIndex++;
+  }
+
+  function playPad(t, chord, dur) {
+    if(!ctx) return;
+    chord.forEach(note => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      const filt = ctx.createBiquadFilter();
+      filt.type='lowpass'; filt.frequency.value=1200;
+      o.type='sawtooth'; o.frequency.value=note;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.025, t+0.4);
+      g.gain.setValueAtTime(0.025, t+dur-0.4);
+      g.gain.linearRampToValueAtTime(0, t+dur);
+      o.connect(filt); filt.connect(g); g.connect(musicGain);
+      o.start(t); o.stop(t+dur);
+    });
+  }
+
+  function playLead(t) {
+    if(!ctx || intensity < 1) return;
+    const note = LEAD_SCALE[Math.floor(Math.random()*LEAD_SCALE.length)];
+    const freq = note * (Math.random()>0.5?4:2);
+    sweepOsc('square', freq, freq*(0.95+Math.random()*0.1), t, getBeat()*0.6, 0.04, musicGain);
+  }
+
+  function scheduleBeat() {
+    if(!ctx || !musicPlaying) return;
+    const beat = getBeat();
+    const t = ctx.currentTime + 0.02; // small lookahead
+    const b = beatCount % 8;
+    const chord = CHORDS[chordIndex % CHORDS.length];
+
+    // Drums
+    if(b===0||b===4) playKick(t);
+    if(b===2||b===6) playSnare(t);
+    if(intensity >= 1) playHihat(t, b%2===1);
+
+    // Bass
+    if(b===0||b===4||b===6) playBass(t, BASS_NOTES[chordIndex%BASS_NOTES.length]*(b===6?2:1));
+
+    // Arp
+    if(intensity >= 1) playArp(t, chord);
+
+    // Pad (every 8 beats)
+    if(b===0) {
+      playPad(t, chord, beat*8);
+      chordIndex++;
+    }
+
+    // Lead melody
+    if(intensity >= 1 && b%2===0) playLead(t);
+
+    // Boss mode: extra elements
+    if(intensity === 2) {
+      if(b===1||b===3||b===5||b===7) playHihat(t, false);
+      if(b===0) osc('sawtooth', 55, t, beat*0.3, 0.08, musicGain);
+    }
+
+    beatCount++;
+    // Adjust BPM gradually
+    const targetBpm = intensity===0?108 : intensity===1?128 : 148;
+    bpm += (targetBpm-bpm)*0.05;
+
+    beatTimer = setTimeout(scheduleBeat, beat*1000*0.98);
+  }
+
+  function startMusic() {
+    if(!ctx || musicPlaying) return;
+    musicPlaying = true;
+    beatCount=0; chordIndex=0; arpIndex=0; bpm=108;
+    scheduleBeat();
+  }
+
+  function stopMusic() {
+    musicPlaying = false;
+    if(beatTimer) clearTimeout(beatTimer);
+  }
+
+  function setIntensity(level) {
+    // 0=menu/calm, 1=playing, 2=boss
+    if(intensity===level) return;
+    intensity = level;
+  }
+
+  function setMusicVol(v) { if(musicGain) musicGain.gain.setTargetAtTime(v*MUSIC_VOL,ctx.currentTime,0.5); }
+  function setSfxVol(v)   { if(sfxGain)   sfxGain.gain.setTargetAtTime(v*SFX_VOL,ctx.currentTime,0.1); }
+
+  function resume() { if(ctx && ctx.state==='suspended') ctx.resume(); }
+
+  return { init, resume, startMusic, stopMusic, setIntensity,
+    shoot, shootLaser, enemyHit, enemyExplode, bigExplode,
+    collectYellow, collectPink, playerHurt, nova, bossEntry,
+    dashSfx, shieldOn, powerupCollect, waveComplete, comboSound,
+    setMusicVol, setSfxVol,
+    get musicEnabled(){ return musicEnabled; },
+    set musicEnabled(v){ musicEnabled=v; if(musicGain) musicGain.gain.setTargetAtTime(v?MUSIC_VOL:0,ctx.currentTime,0.5); },
+    get sfxEnabled(){ return sfxEnabled; },
+    set sfxEnabled(v){ sfxEnabled=v; },
+    get isPlaying(){ return musicPlaying; },
+  };
+})();
+
+// ——— AUDIO SETTINGS UI ———
+(function addAudioControls() {
+  const panel = document.createElement('div');
+  panel.id = 'audio-panel';
+  panel.style.cssText = `
+    position:fixed;bottom:20px;left:20px;z-index:9997;
+    display:flex;gap:8px;align-items:center;
+  `;
+  panel.innerHTML = `
+    <button id="audio-music-btn" onclick="toggleMusic()" title="מוזיקה" style="
+      font-size:16px;padding:8px 12px;background:rgba(0,8,35,0.88);
+      border:1px solid rgba(168,85,247,0.4);color:rgba(255,255,255,0.8);
+      cursor:pointer;border-radius:8px;transition:all 0.3s;
+      box-shadow:0 0 12px rgba(168,85,247,0.1);">🎵</button>
+    <button id="audio-sfx-btn" onclick="toggleSfx()" title="אפקטי קול" style="
+      font-size:16px;padding:8px 12px;background:rgba(0,8,35,0.88);
+      border:1px solid rgba(0,245,255,0.3);color:rgba(255,255,255,0.8);
+      cursor:pointer;border-radius:8px;transition:all 0.3s;
+      box-shadow:0 0 12px rgba(0,245,255,0.08);">🔊</button>
+  `;
+  document.body.appendChild(panel);
+})();
+
+function toggleMusic() {
+  Audio.init(); Audio.resume();
+  Audio.musicEnabled = !Audio.musicEnabled;
+  const btn = document.getElementById('audio-music-btn');
+  if(Audio.musicEnabled) {
+    btn.textContent='🎵'; btn.style.borderColor='rgba(168,85,247,0.4)';
+    btn.style.color='rgba(255,255,255,0.8)';
+    if(!Audio.isPlaying) Audio.startMusic();
+  } else {
+    btn.textContent='🔇'; btn.style.borderColor='rgba(100,100,100,0.3)';
+    btn.style.color='rgba(150,150,150,0.5)';
+  }
+}
+
+function toggleSfx() {
+  Audio.sfxEnabled = !Audio.sfxEnabled;
+  const btn = document.getElementById('audio-sfx-btn');
+  if(Audio.sfxEnabled) {
+    btn.textContent='🔊'; btn.style.borderColor='rgba(0,245,255,0.3)'; btn.style.color='rgba(255,255,255,0.8)';
+  } else {
+    btn.textContent='🔕'; btn.style.borderColor='rgba(100,100,100,0.3)'; btn.style.color='rgba(150,150,150,0.5)';
+  }
+}
+
+// Start audio on first interaction
+document.addEventListener('click', function startAudio() {
+  Audio.init(); Audio.resume();
+  if(!Audio.isPlaying) Audio.startMusic();
+  document.removeEventListener('click', startAudio);
+}, { once:true });
+
+// ============================================================
+// END AUDIO SYSTEM
+// ============================================================
+
+
+(function checkAutoLogin() {
+  const remembered = localStorage.getItem(REMEMBER_KEY);
+  if(remembered) {
+    try {
+      const data = JSON.parse(remembered);
+      const db = loadDB();
+      if(db.users[data.username] && db.users[data.username].hash === data.hash) {
+        currentUser = data.username;
+        showMenu();
+        return;
+      }
+    } catch(e){}
+  }
+  // no auto-login — auth screen stays active by default
+})();
+
+applyLanguage();
+gameLoop();
+</script>
+</body>
+</html>
